@@ -7,6 +7,8 @@ A_MALES = -9.58814632
 B_MALES = 0.61453804
 A_FEMALES = -9.91023535
 B_FEMALES = 0.47451181
+A_HOSP = -10.94003941
+B_HOSP = 6.36278121
 
 
 def sigmoid(x):
@@ -39,6 +41,14 @@ def get_prob_symptomatic(row):
     return sympt_prob(row["age"])
 
 
+def hosp_prob(x):
+    return sigmoid(np.sqrt(x) + A_HOSP) * B_HOSP
+
+
+def get_prob_hospitalisation(row):
+    return min(1, hosp_prob(row["age"]))
+
+
 def sample_population(n_sample):
     # Dataframe including age (V1) and sex (V2)
     pop_df = pd.read_csv('data/age_and_sex.csv')
@@ -47,6 +57,7 @@ def sample_population(n_sample):
     # Sample only the number of people in isoboxes (n_samples)
     pop_df['death_rate'] = pop_df.apply(lambda row: get_deathrate(row), axis=1)
     pop_df['prob_symptomatic'] = pop_df.apply(lambda row: get_prob_symptomatic(row), axis=1)
+    pop_df['prob_symp_to_hosp'] = pop_df.apply(lambda row: get_prob_hospitalisation(row), axis=1)
     sample = pop_df.sample(n=n_sample, random_state=69420)
     # print(sample['death_rate'].values.shape)
 
