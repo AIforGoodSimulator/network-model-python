@@ -13,7 +13,7 @@ STATE_DICTIONARY = {"Susceptible": 1, "Exposed": 2, "Infectious_PreSymp": 3,
                     "Detected_Symp": 11, "Detected_Asymp": 12}
 
 
-def create_graph(n_structures, population, max_pop_per_struct, **kwargs):
+def create_graph(n_structures, start_idx, population, max_pop_per_struct, **kwargs):
     """ Creates a networkX graph containing all the population in the camp that is in a given structure (currently just isoboxes).
         Draws edges between people from the same isobox and returns the networkX graph and an adjacency list
     """
@@ -30,7 +30,7 @@ def create_graph(n_structures, population, max_pop_per_struct, **kwargs):
     available_structs = list(range(n_structures))
 
     # Add the nodes to the graph
-    for node in tqdm(range(population)):
+    for node in tqdm(range(start_idx, population)):
         g.add_node(node)
 
         # Assign nodes to isoboxes randomly, until we reach the capacity of that isobox
