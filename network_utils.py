@@ -97,19 +97,19 @@ def divide_grid(grid, n_slices):
     return np.array_split(grid, n_slices, axis=1)
 
 
-def create_grid(width, height):
+def create_grid(width, height, starting_n):
     """ Create a grid of isoboxes that resembles the isobox area of the camp, for ease of measuring proximity
         between nodes. Returns a numpy array of shape (width, height) """
 
-    iso_grid = np.zeros(shape=(width, height)).astype(int)
-    iso_n = 0
+    grid = np.zeros(shape=(width, height)).astype(int)
+    n = starting_n
 
     for i in range(width):
         for j in range(height):
-            iso_grid[i][j] = iso_n
-            iso_n += 1
+            grid[i][j] = n
+            n += 1
 
-    return iso_grid
+    return grid
 
 
 def get_neighbors(grid, structure_num, proximity):

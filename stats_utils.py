@@ -59,7 +59,7 @@ def increase_population(old_pop, new_pop, **kwargs):
     pop_df = pop_df[["V1", "V2"]].rename(columns={"V1": "age", "V2": "sex"})
 
     # Camp parameters
-    camp_params = pd.read_csv("../data/camp_params.csv")
+    camp_params = pd.read_csv("data/camp_params.csv")
 
     # Get the age ranges and their respective prevalence in the camp
     age_ranges = list(camp_params["Age"].iloc[1:9])
