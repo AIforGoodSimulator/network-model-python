@@ -1,0 +1,4 @@
+pandas==1.0.4
+networkx==2.4
+tqdm==4.42.0
+numpy==1.18.1
