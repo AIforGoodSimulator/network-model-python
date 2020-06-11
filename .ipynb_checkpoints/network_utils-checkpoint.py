@@ -7,17 +7,16 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict
 
-STATE_DICTIONARY = {"Susceptible": 1, "Exposed": 2, "Infectious": 3,
-                     "Detected_Exposed": 4, "Detected_Infectious": 5,
-                     "Recovered": 6, "Deceased": 7}
+STATE_DICTIONARY = {"Susceptible": 1, "Exposed": 2, "Infectious_Presymptomatic": 3,
+                     "Infectious_Symptomatic": 4, "Infectious_Asymptomatic": 5, "Hospitalized": 6,
+                    "Recovered": 7, "Deceased": 8, "Detected_Exposed": 9, "Detected_Presymptomatic": 10,
+                    "Detected_Symptomatic": 11, "Detected_Asymptomatic": 12}
 
 
-def create_graph(n_structures, population, max_pop_per_struct, edge_weight, label):
+def create_graph(n_structures, start_idx, population, max_pop_per_struct, **kwargs):
     """ Creates a networkX graph containing all the population in the camp that is in a given structure (currently just isoboxes).
         Draws edges between people from the same isobox and returns the networkX graph and an adjacency list
     """
-    # For now we will only add ethnicity as a node property, but we can expand on this
-    n_ethnicities = 8
 
     # Graph is a networkX graph object
     g = nx.Graph()
@@ -31,15 +30,16 @@ def create_graph(n_structures, population, max_pop_per_struct, edge_weight, labe
     available_structs = list(range(n_structures))
 
     # Add the nodes to the graph
-    for node in tqdm(range(population)):
+    for node in tqdm(range(start_idx, population)):
         g.add_node(node)
 
         # Assign nodes to isoboxes randomly, until we reach the capacity of that isobox
         struct_num = np.random.choice(available_structs)
 
         # Assign properties to nodes
+        g.nodes[node]["age"] = kwargs["age_list"][node]
         g.nodes[node]["location"] = struct_num
-        g.nodes[node]["ethnicity"] = np.random.choice(range(n_ethnicities))
+        g.nodes[node]["ethnicity"] = np.random.choice(range(kwargs["n_ethnicities"]))
 
         # Update number of nodes per isobox and which nodes were added to iso_num
         struct_count[struct_num] += 1
@@ -53,7 +53,7 @@ def create_graph(n_structures, population, max_pop_per_struct, edge_weight, labe
         # Use the cartesian product to get all possible edges within the nodes in an isobox
         # and only add if they are not the same node
         edge_list = [tup for tup in list(itertools.product(node_list, repeat=2)) if tup[0] != tup[1]]
-        g.add_edges_from(edge_list, weight=edge_weight, label=label)
+        g.add_edges_from(edge_list, weight=kwargs["edge_weight"], label=kwargs["label"])
 
     return g, nodes_per_struct
 
@@ -97,19 +97,19 @@ def divide_grid(grid, n_slices):
     return np.array_split(grid, n_slices, axis=1)
 
 
-def create_grid(width, height):
+def create_grid(width, height, starting_n):
     """ Create a grid of isoboxes that resembles the isobox area of the camp, for ease of measuring proximity
         between nodes. Returns a numpy array of shape (width, height) """
 
-    iso_grid = np.zeros(shape=(width, height)).astype(int)
-    iso_n = 0
+    grid = np.zeros(shape=(width, height)).astype(int)
+    n = starting_n
 
     for i in range(width):
         for j in range(height):
-            iso_grid[i][j] = iso_n
-            iso_n += 1
+            grid[i][j] = n
+            n += 1
 
-    return iso_grid
+    return grid
 
 
 def get_neighbors(grid, structure_num, proximity):
@@ -194,22 +194,65 @@ def connect_food_queue(base_graph, nodes_per_structure, edge_weight, label):
                 graph.add_edge(food_bois[i], food_bois[j], weight=edge_weight, label=label)
     return graph
 
-# TODO: Write this with more information
-def output_df(model, graph, properties, states, store=False):
-    """ Say we wanted to get the number of deaths and infectious individuals per ethnicity:
+####### MODEL UTILS! ################
+
+def run_simulation(model, t, print_info=False, store_every=1):
+    node_states = dict()
+    simulation_results = defaultdict(list)
+    
+    print(f"Running simulation for {t} steps...\n")
+    
+    for i in tqdm(range(1, t + 1)):
+        model.run(T=1, verbose=print_info)
+        
+        if i % store_every == 0:
+            # Store the node states - an array of size (1, num_nodes) -> we store a copy because the array gets updated
+            node_states[i] = np.copy(model.X.T)
+
+            # Store the quantities of the last time step t 
+            simulation_results["Symptomatic"].append(model.numS[-1])
+            simulation_results["Exposed"].append(model.numE[-1])
+            simulation_results["Infected_Presymptomatic"].append(model.numI_pre[-1])
+            simulation_results["Infected_Symptomatic"].append(model.numI_S[-1])
+            simulation_results["Infected_Asymptomatic"].append(model.numI_A[-1])
+            simulation_results["Hospitalized"].append(model.numH[-1])
+            simulation_results["Recovered"].append(model.numR[-1])
+            simulation_results["Fatalities"].append(model.numF[-1])
+            simulation_results["Detected_Presymptomatic"].append(model.numD_pre[-1])
+            simulation_results["Detected_Symptomatic"].append(model.numD_S[-1])
+            simulation_results["Detected_Asymptomatic"].append(model.numD_A[-1])
+
+        
+    return node_states, simulation_results
+
+
+def output_df(model, graph, properties, states, store=False, store_name=None):
+    """ Say we wanted to get the number of deaths and infectious symptomatic individuals per ethnicity:
         - Properties is a list of ['ethnicity']
-        - States is a list of ['Infectious', 'Deceased']
+        - States is a list of ['Infectious_Symp', 'Deceased']
 
         Returns a dataframe with the information requested above, and stores it if store=True """
 
-    output = pd.DataFrame()
-    node_groups = defaultdict(list)
+
+    ## TODO: For now we won't store properties, just statistics (?)
+
+    output = pd.DataFrame(columns=states)
+    # node_groups = defaultdict(list)
+    state_counts = defaultdict(list)
 
     for state in states:
-        # Get all the nodes in a given state - we can access their properties as well
-        nodes = get_nodes_per_state(model, graph, STATE_DICTIONARY[state])
-        node_groups[state] = nodes
+        # Get all the nodes in a given state - we can access their properties as well by feeding the state matrix X
+        nodes = get_nodes_per_state(model.X.T, graph, STATE_DICTIONARY[state])
 
+        # Update columns
+        state_counts[state].append(len(nodes))
+
+    if store:
+        output.to_csv(store_name)
+
+    return output
+
+###########################################
 
 # Some helper functions - all of which could be added to networkx class!
 def min_degree(graph):
@@ -222,7 +265,9 @@ def max_degree(graph):
     return max(graph.degree, key=lambda kv: kv[1])[1]
 
 
-def get_nodes_per_state(model, graph, state):
+def get_nodes_per_state(X, graph, state):
     """ Get the nodes that have a given state in the latest timestep of the SEIRS+ model
         Since nodes are represented by their properties in this case, this will return a list of property dicts """
-    return [node for node in graph.nodes if model.X[node][0] == state]
+    return [node for node in graph.nodes if X[node] == state]
+
+

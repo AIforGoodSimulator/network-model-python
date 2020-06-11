@@ -49,17 +49,16 @@ def get_prob_hospitalisation(row):
     return min(1, hosp_prob(row["age"]))
 
 
-def increase_population(old_pop, new_pop, **kwargs):
+def increase_population(old_pop, new_pop, pop_df_file, **kwargs):
 
     # This is the number of people we now need
     diff_pop = new_pop - old_pop
 
     # Dataframe including age (V1) and sex (V2)
-    pop_df = pd.read_csv('data/age_and_sex.csv')
-    pop_df = pop_df[["V1", "V2"]].rename(columns={"V1": "age", "V2": "sex"})
+    pop_df = pd.read_csv(pop_df_file)
 
     # Camp parameters
-    camp_params = pd.read_csv("data/camp_params.csv")
+    camp_params = pd.read_csv(kwargs["camp_params_file"])
 
     # Get the age ranges and their respective prevalence in the camp
     age_ranges = list(camp_params["Age"].iloc[1:9])
@@ -96,10 +95,9 @@ def increase_population(old_pop, new_pop, **kwargs):
     return pop_df
 
 
-def sample_population(n_sample):
+def sample_population(n_sample, pop_df_file):
     # Dataframe including age (V1) and sex (V2)
-    pop_df = pd.read_csv('data/age_and_sex.csv')
-    pop_df = pop_df[["V1", "V2"]].rename(columns={"V1": "age", "V2": "sex"})
+    pop_df = pd.read_csv(pop_df_file)
 
     # Sample only the number of people in isoboxes (n_samples)
     pop_df['death_rate'] = pop_df.apply(lambda row: get_deathrate(row), axis=1)

@@ -7,10 +7,10 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict
 
-STATE_DICTIONARY = {"Susceptible": 1, "Exposed": 2, "Infectious_PreSymp": 3,
-                     "Infectious_Symp": 4, "Infectious_Asymp": 5, "Hospitalized": 6,
-                    "Recovered": 7, "Deceased": 8, "Detected_Exposed": 9, "Detected_PreSymp": 10,
-                    "Detected_Symp": 11, "Detected_Asymp": 12}
+STATE_DICTIONARY = {"Susceptible": 1, "Exposed": 2, "Infectious_Presymptomatic": 3,
+                     "Infectious_Symptomatic": 4, "Infectious_Asymptomatic": 5, "Hospitalized": 6,
+                    "Recovered": 7, "Deceased": 8, "Detected_Exposed": 9, "Detected_Presymptomatic": 10,
+                    "Detected_Symptomatic": 11, "Detected_Asymptomatic": 12}
 
 
 def create_graph(n_structures, start_idx, population, max_pop_per_struct, **kwargs):
@@ -194,6 +194,37 @@ def connect_food_queue(base_graph, nodes_per_structure, edge_weight, label):
                 graph.add_edge(food_bois[i], food_bois[j], weight=edge_weight, label=label)
     return graph
 
+####### MODEL UTILS! ################
+
+def run_simulation(model, t, print_info=False, store_every=1):
+    node_states = dict()
+    simulation_results = defaultdict(list)
+    
+    print(f"Running simulation for {t} steps...\n")
+    
+    for i in tqdm(range(1, t + 1)):
+        model.run(T=1, verbose=print_info)
+        
+        if i % store_every == 0:
+            # Store the node states - an array of size (1, num_nodes) -> we store a copy because the array gets updated
+            node_states[i] = np.copy(model.X.T)
+
+            # Store the quantities of the last time step t 
+            simulation_results["Symptomatic"].append(model.numS[-1])
+            simulation_results["Exposed"].append(model.numE[-1])
+            simulation_results["Infected_Presymptomatic"].append(model.numI_pre[-1])
+            simulation_results["Infected_Symptomatic"].append(model.numI_S[-1])
+            simulation_results["Infected_Asymptomatic"].append(model.numI_A[-1])
+            simulation_results["Hospitalized"].append(model.numH[-1])
+            simulation_results["Recovered"].append(model.numR[-1])
+            simulation_results["Fatalities"].append(model.numF[-1])
+            simulation_results["Detected_Presymptomatic"].append(model.numD_pre[-1])
+            simulation_results["Detected_Symptomatic"].append(model.numD_S[-1])
+            simulation_results["Detected_Asymptomatic"].append(model.numD_A[-1])
+
+        
+    return node_states, simulation_results
+
 
 def output_df(model, graph, properties, states, store=False, store_name=None):
     """ Say we wanted to get the number of deaths and infectious symptomatic individuals per ethnicity:
@@ -221,6 +252,8 @@ def output_df(model, graph, properties, states, store=False, store_name=None):
 
     return output
 
+###########################################
+
 # Some helper functions - all of which could be added to networkx class!
 def min_degree(graph):
     """ Return the minimum degree in the graph """
@@ -236,3 +269,5 @@ def get_nodes_per_state(X, graph, state):
     """ Get the nodes that have a given state in the latest timestep of the SEIRS+ model
         Since nodes are represented by their properties in this case, this will return a list of property dicts """
     return [node for node in graph.nodes if X[node] == state]
+
+
