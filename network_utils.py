@@ -38,6 +38,7 @@ def create_graph(n_structures, start_idx, population, max_pop_per_struct, **kwar
 
         # Assign properties to nodes
         g.nodes[node]["age"] = kwargs["age_list"][node]
+        g.nodes[node]["sex"] = kwargs["sex_list"][node]
         g.nodes[node]["location"] = struct_num
         g.nodes[node]["ethnicity"] = np.random.choice(range(kwargs["n_ethnicities"]))
 
@@ -143,14 +144,14 @@ def get_neighbors(grid, structure_num, proximity):
     return list(neighbors)
 
 
-def connect_neighbors(base_graph, n_structures, nodes_per_structure, grid, proximity, edge_weight, label):
+def connect_neighbors(base_graph, start_idx, n_structures, nodes_per_structure, grid, proximity, edge_weight, label):
     """ Draw edges in the given graph between people of neighboring structures (currently isoboxes)
         f they have the same ethnicity """
 
     graph = base_graph.copy()
 
     # For every possible structure:
-    for structure in range(n_structures):
+    for structure in range(start_idx, n_structures + start_idx):
 
         # Given an isobox number get its neighbor isoboxes
         neighbors = get_neighbors(grid, structure, proximity)
@@ -161,7 +162,7 @@ def connect_neighbors(base_graph, n_structures, nodes_per_structure, grid, proxi
             graph.add_edges_from([(i, j) for i in nodes_per_structure[structure] \
                                   for j in nodes_per_structure[neighbor] if
                                   graph.nodes[i]["ethnicity"] == graph.nodes[j]["ethnicity"]],
-                                 weight=edge_weight, label=label)
+                                  weight=edge_weight, label=label)
 
     return graph
 
