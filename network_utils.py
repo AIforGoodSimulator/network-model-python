@@ -195,6 +195,28 @@ def connect_food_queue(base_graph, nodes_per_structure, edge_weight, label):
                 graph.add_edge(food_bois[i], food_bois[j], weight=edge_weight, label=label)
     return graph
 
+def create_node_groups(graph):
+    """
+    create node groups for each 10-year age bucket so the main simulation can track the results for people in each age bucket
+    """
+    AGE_BUCKET=9
+    graph_data=list(graph.nodes(data='age'))
+    node_groups={}
+    for age in range(AGE_BUCKET):
+        nodeList=[]
+        if age==8:
+            groupName=f'age>{age*10}'
+        else:
+            groupName=f'age{age*10}-{(age+1)*10}'
+        for node in graph_data:
+            if age==8:
+                if node[1]>=age*10:
+                    nodeList.append(node[0])
+            else:
+                if node[1]>=age*10 and node[1]<(age+1)*10:
+                    nodeList.append(node[0])
+        node_groups[groupName]=nodeList
+    return node_groups
 ####### MODEL UTILS! ################
 
 def run_simulation(model, t, print_info=False, store_every=1):
