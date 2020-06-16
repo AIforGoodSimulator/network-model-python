@@ -26,7 +26,7 @@ Initial Infected Population | I₀ | 10 |
 ## Preliminary Results
 Running this simulation with only the people that live in the houses (around 8100 people), the results we have found from the SEIRS+ model are the following:
 
-![Image not found.](Infections_IsoWeight=1_NeighWeight=0.5_FoodWeight=0.2_Beta=1.28_Gamma=0.056_Sigma=0.87_initI=10_figBasic.png)
+![Image not found.](plots/Infections_IsoWeight=1_NeighWeight=0.5_FoodWeight=0.2_Beta=1.28_Gamma=0.056_Sigma=0.87_initI=10_figBasic.png)
 
 ## Todo List
 - Get as specific as possible with the interventions that are possible to model.
