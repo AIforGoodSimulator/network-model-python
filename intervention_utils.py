@@ -4,10 +4,8 @@ from collections import defaultdict
 class Interventions:
     def __init__(self):
         self.checkpoints = defaultdict(list)
-        self.checkpoints['t'] = []
-        self.checkpoints['G'] = []
 
-    def add(self, time, g_intervention, **kwargs):
+    def add(self, g_intervention, time, **kwargs):
         """ Adding an intervention to the checkpoints dictionary requires
             a graph and a time step at which the intervention will occur.
             Other parameters that are altered are optional """
@@ -20,12 +18,13 @@ class Interventions:
         for parameter, value in kwargs.items():
             self.checkpoints[parameter].append(value)
 
-        # If there are parameters that haven't been updated in this time step, keep their previous values
+        # If there are parameters that haven't been updated in this time step,
+        # keep their previous values
         for parameter, value in self.checkpoints.items():
             if len(value) != len(self.checkpoints["t"]):
                 value.append(value[-1])
 
-    def edit(self, time, g_intervention, **kwargs):
+    def edit(self, g_intervention, time, **kwargs):
         """ Edit an intervention at a given time step in the checkpoints dictionary """
         # Raise an exception if the time is not in the checkpoints
         if time not in self.checkpoints["t"]:
@@ -54,5 +53,8 @@ class Interventions:
             for parameter, value in self.checkpoints.items():
                 value.pop(t_index)
 
-    def get_checkpoints(self):
+    @staticmethod
+    def checkpoints(self):
         return dict(self.checkpoints)
+
+

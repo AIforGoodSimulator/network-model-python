@@ -7,7 +7,7 @@ class Interventions:
         self.checkpoints['t'] = []
         self.checkpoints['G'] = []
 
-    def add(self, time, g_intervention, **kwargs):
+    def add(self, g_intervention, t, **kwargs):
         """ Adding an intervention to the checkpoints dictionary requires
             a graph and a time step at which the intervention will occur.
             Other parameters that are altered are optional """
@@ -56,3 +56,11 @@ class Interventions:
 
     def get_checkpoints(self):
         return dict(self.checkpoints)
+	
+	
+	def wear_masks(self, graph, t, old_transmission_rates, percentage):
+		""" Simulate a percentage of the population wearing masks by decreasing the transmission rate accordingly """
+		
+		new_transmission_rates = np.array(old_transmission_rates) * percentage
+		
+		self.add(graph, t, beta=new_transmission_rates)
