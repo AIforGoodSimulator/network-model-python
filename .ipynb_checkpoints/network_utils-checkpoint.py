@@ -7,14 +7,28 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict
 
-STATE_DICTIONARY = {"Susceptible": 1, "Exposed": 2, "Infectious_Presymptomatic": 3,
-                    "Infectious_Symptomatic": 4, "Infectious_Asymptomatic": 5, "Hospitalized": 6,
-                    "Recovered": 7, "Deceased": 8, "Detected_Exposed": 9, "Detected_Presymptomatic": 10,
-                    "Detected_Symptomatic": 11, "Detected_Asymptomatic": 12}
+STATE_DICTIONARY = {
+    "Susceptible": 1,
+    "Exposed": 2,
+    "Infectious_Presymptomatic": 3,
+    "Infectious_Symptomatic": 4,
+    "Infectious_Asymptomatic": 5,
+    "Hospitalized": 6,
+    "Recovered": 7,
+    "Deceased": 8,
+    "Detected_Exposed": 9,
+    "Detected_Presymptomatic": 10,
+    "Detected_Symptomatic": 11,
+    "Detected_Asymptomatic": 12}
 
 
 ####### NETWORK CREATION UTILS! ################
-def create_graph(n_structures, start_idx, population, max_pop_per_struct, **kwargs):
+def create_graph(
+        n_structures,
+        start_idx,
+        population,
+        max_pop_per_struct,
+        **kwargs):
     """ Creates a networkX graph containing all the population in the camp that is in a given structure (currently just isoboxes).
         Draws edges between people from the same isobox and returns the networkX graph and an adjacency list
     """
@@ -25,7 +39,8 @@ def create_graph(n_structures, start_idx, population, max_pop_per_struct, **kwar
     # Keep track of how many nodes we have put in an isobox already
     struct_count = np.zeros(shape=n_structures)
 
-    # Store the indices of the nodes we store in each isobox in a 2D array where array[i] contains the nodes in isobox i
+    # Store the indices of the nodes we store in each isobox in a 2D array
+    # where array[i] contains the nodes in isobox i
     nodes_per_struct = [[] for i in range(n_structures)]
 
     available_structs = list(range(n_structures))
@@ -34,16 +49,19 @@ def create_graph(n_structures, start_idx, population, max_pop_per_struct, **kwar
     for node in tqdm(range(start_idx, population)):
         g.add_node(node)
 
-        # Assign nodes to isoboxes randomly, until we reach the capacity of that isobox
+        # Assign nodes to isoboxes randomly, until we reach the capacity of
+        # that isobox
         struct_num = np.random.choice(available_structs)
 
         # Assign properties to nodes
         g.nodes[node]["age"] = kwargs["age_list"][node]
         g.nodes[node]["sex"] = kwargs["sex_list"][node]
         g.nodes[node]["location"] = struct_num
-        g.nodes[node]["ethnicity"] = np.random.choice(range(kwargs["n_ethnicities"]))
+        g.nodes[node]["ethnicity"] = np.random.choice(
+            range(kwargs["n_ethnicities"]))
 
-        # Update number of nodes per isobox and which nodes were added to iso_num
+        # Update number of nodes per isobox and which nodes were added to
+        # iso_num
         struct_count[struct_num] += 1
         nodes_per_struct[struct_num].append(node)
 
@@ -54,8 +72,15 @@ def create_graph(n_structures, start_idx, population, max_pop_per_struct, **kwar
     for node_list in nodes_per_struct:
         # Use the cartesian product to get all possible edges within the nodes in an isobox
         # and only add if they are not the same node
-        edge_list = [tup for tup in list(itertools.product(node_list, repeat=2)) if tup[0] != tup[1]]
-        g.add_edges_from(edge_list, weight=kwargs["edge_weight"], label=kwargs["label"])
+        edge_list = [
+            tup for tup in list(
+                itertools.product(
+                    node_list,
+                    repeat=2)) if tup[0] != tup[1]]
+        g.add_edges_from(
+            edge_list,
+            weight=kwargs["edge_weight"],
+            label=kwargs["label"])
 
     return g, nodes_per_struct
 
@@ -65,7 +90,9 @@ def create_distancing_graph(base_graph, scale=20, min_num_edges=8):
 
 
 def create_quarantine_graph(base_graph, scale=10, min_num_edges=4):
-    return remove_edges_from_graph(base_graph, ["food", "neighbor"], scale, min_num_edges)
+    return remove_edges_from_graph(
+        base_graph, [
+            "food", "friendship"], scale, min_num_edges)
 
 
 def remove_edges_from_graph(base_graph, edge_label_list, scale, min_num_edges):
@@ -76,20 +103,26 @@ def remove_edges_from_graph(base_graph, edge_label_list, scale, min_num_edges):
     graph = base_graph.copy()
 
     for node in graph:
-        # Select all the neighbors that share an edge of a particular label
+            # Select all the neighbors that share an edge of a particular label
         neighbors = [neighbor for neighbor in list(graph[node].keys())
                      if graph.edges[node, neighbor]["label"] in edge_label_list]
 
-        # Randomly draw the number of edges to keep
-        quarantine_edge_num = int(max(min(np.random.exponential(scale=scale, size=1), len(neighbors)), min_num_edges))
+        # If there are no neighbors that have a label from edge_label_list, we
+        # continue
+        if neighbors:
+            # Randomly draw the number of edges to keep
+            quarantine_edge_num = int(max(min(np.random.exponential(
+                scale=scale, size=1), len(neighbors)), min_num_edges))
 
-        # Create the list of neighbors to keep
-        quarantine_keep_neighbors = np.random.choice(neighbors, size=quarantine_edge_num, replace=False)
+            if quarantine_edge_num <= len(neighbors):
+                # Create the list of neighbors to keep
+                quarantine_keep_neighbors = np.random.choice(
+                    neighbors, size=quarantine_edge_num, replace=False)
 
-        # Remove edges that are not in te list of neighbors to keep
-        for neighbor in neighbors:
-            if neighbor not in quarantine_keep_neighbors:
-                graph.remove_edge(node, neighbor)
+                # Remove edges that are not in te list of neighbors to keep
+                for neighbor in neighbors:
+                    if neighbor not in quarantine_keep_neighbors:
+                        graph.remove_edge(node, neighbor)
 
     return graph
 
@@ -145,7 +178,15 @@ def get_neighbors(grid, structure_num, proximity):
     return list(neighbors)
 
 
-def connect_neighbors(base_graph, start_idx, n_structures, nodes_per_structure, grid, proximity, edge_weight, label):
+def connect_neighbors(
+        base_graph,
+        start_idx,
+        n_structures,
+        nodes_per_structure,
+        grid,
+        proximity,
+        edge_weight,
+        label):
     """ Draw edges in the given graph between people of neighboring structures (currently isoboxes)
         f they have the same ethnicity """
 
@@ -160,7 +201,7 @@ def connect_neighbors(base_graph, start_idx, n_structures, nodes_per_structure, 
         # For every neighbor isobox:
         for neighbor in neighbors:
             # If they share the same properties, draw an edge between them
-            graph.add_edges_from([(i, j) for i in nodes_per_structure[structure] \
+            graph.add_edges_from([(i, j) for i in nodes_per_structure[structure]
                                   for j in nodes_per_structure[neighbor] if
                                   graph.nodes[i]["ethnicity"] == graph.nodes[j]["ethnicity"]],
                                  weight=edge_weight, label=label)
@@ -189,11 +230,16 @@ def connect_food_queue(base_graph, nodes_per_structure, edge_weight, label):
     food_bois = list(food_bois)
     np.random.shuffle(food_bois)
 
-    # Draw an edge between everyone in the list in order, since we have already shuffled them
+    # Draw an edge between everyone in the list in order, since we have
+    # already shuffled them
     for i in range(len(food_bois) - 6):
         for j in range(i + 1, i + 6):
             if not graph.has_edge(food_bois[i], food_bois[j]):
-                graph.add_edge(food_bois[i], food_bois[j], weight=edge_weight, label=label)
+                graph.add_edge(
+                    food_bois[i],
+                    food_bois[j],
+                    weight=edge_weight,
+                    label=label)
     return graph
 
 
@@ -223,86 +269,81 @@ def create_node_groups(graph):
 
 ####### MODEL UTILS! ################
 
-def run_simulation(model, t, print_info=False, store_every=1):
-    node_states = dict()
-    simulation_results = defaultdict(list)
+def run_simulation(model, t, checkpoints=None, simulation_results=None, nodes_states=None, print_info=False, store_every=1):
+
+    if not simulation_results:
+        node_states = dict()
+        simulation_results = defaultdict(list)
 
     print(f"Running simulation for {t} steps...\n")
 
     for i in tqdm(range(1, t + 1)):
-        model.run(T=1, verbose=print_info)
+        model.run(T=1, verbose=print_info, checkpoints=checkpoints)
 
         if i % store_every == 0:
-            # Store the node states - an array of size (1, num_nodes) -> we store a copy because the array gets updated
+            # Store the node states - an array of size (1, num_nodes) -> we
+            # store a copy because the array gets updated
             node_states[i] = np.copy(model.X.T)
 
-            # Store the quantities of the last time step t 
-            simulation_results["Symptomatic"].append(model.numS[-1])
+            # Store the quantities of the last time step t
+            simulation_results["Susceptible"].append(model.numS[-1])
             simulation_results["Exposed"].append(model.numE[-1])
-            simulation_results["Infected_Presymptomatic"].append(model.numI_pre[-1])
+            simulation_results["Infected_Presymptomatic"].append(
+                model.numI_pre[-1])
             simulation_results["Infected_Symptomatic"].append(model.numI_S[-1])
-            simulation_results["Infected_Asymptomatic"].append(model.numI_A[-1])
+            simulation_results["Infected_Asymptomatic"].append(
+                model.numI_A[-1])
             simulation_results["Hospitalized"].append(model.numH[-1])
             simulation_results["Recovered"].append(model.numR[-1])
             simulation_results["Fatalities"].append(model.numF[-1])
-            simulation_results["Detected_Presymptomatic"].append(model.numD_pre[-1])
+            simulation_results["Detected_Presymptomatic"].append(
+                model.numD_pre[-1])
             simulation_results["Detected_Symptomatic"].append(model.numD_S[-1])
-            simulation_results["Detected_Asymptomatic"].append(model.numD_A[-1])
+            simulation_results["Detected_Asymptomatic"].append(
+                model.numD_A[-1])
             simulation_results["T_index"].append(model.tidx)
 
     return node_states, simulation_results
 
+
 def find_whole_time(tseries, T):
-    idt=[]
+    idt = []
     for t in range(0, T + 1):
         idt.append(np.abs(tseries - t).argmin())
     return idt
 
-def run_simulation_group(model, t, print_info=False, store_every=1):
+
+def run_simulation_test(model, t, print_info=False):
     node_states = dict()
     simulation_results = defaultdict(list)
 
     print(f"Running simulation for {t} steps...\n")
+    model.run(T=t, verbose=print_info)
+    # Store the quantities of the time step closest to the integer
+    time_stamps = model.tseries
+    idt = find_whole_time(time_stamps, t)
+    # Store the quantities of each integer time steps
+    simulation_results["Susceptible"] = model.numS[idt]
+    simulation_results["Exposed"] = model.numE[idt]
+    simulation_results["Infected_Presymptomatic"] = model.numI_pre[idt]
+    simulation_results["Infected_Symptomatic"] = model.numI_S[idt]
+    simulation_results["Infected_Asymptomatic"] = model.numI_A[idt]
+    simulation_results["Hospitalized"] = model.numH[idt]
+    simulation_results["Recovered"] = model.numR[idt]
+    simulation_results["Fatalities"] = model.numF[idt]
+    simulation_results["Detected_Presymptomatic"] = model.numD_pre[idt]
+    simulation_results["Detected_Symptomatic"] = model.numD_S[idt]
+    simulation_results["Detected_Asymptomatic"] = model.numD_A[idt]
 
-    for i in tqdm(range(1, t + 1)):
-        model.run(T=1, verbose=print_info)
+    return simulation_results
 
-        if i % store_every == 0:
-            # Store the node states - an array of size (1, num_nodes) -> we store a copy because the array gets updated
-            node_states[i] = np.copy(model.X.T)
-
-            # Store the quantities of the last time step t 
-            simulation_results["Symptomatic"].append(model.numS[-1])
-            simulation_results["Exposed"].append(model.numE[-1])
-            simulation_results["Infected_Presymptomatic"].append(model.numI_pre[-1])
-            simulation_results["Infected_Symptomatic"].append(model.numI_S[-1])
-            simulation_results["Infected_Asymptomatic"].append(model.numI_A[-1])
-            simulation_results["Hospitalized"].append(model.numH[-1])
-            simulation_results["Recovered"].append(model.numR[-1])
-            simulation_results["Fatalities"].append(model.numF[-1])
-            simulation_results["Detected_Presymptomatic"].append(model.numD_pre[-1])
-            simulation_results["Detected_Symptomatic"].append(model.numD_S[-1])
-            simulation_results["Detected_Asymptomatic"].append(model.numD_A[-1])
-            simulation_results["T_index"].append(model.tidx)
-    
-    group_data=model.nodeGroupData
-    time_stamps=model.tseries
-    idt=find_whole_time(time_stamps,t)
-    timed_group_data=group_data.copy()
-    for group,group_detail in group_data.items():
-        for key,value in group_detail.items():
-            if key!='nodes' and  key!='mask' and key!='N':
-                timed_group_data[group][key]=value[idt]
-    
-    
-    return node_states,simulation_results,timed_group_data
-    
 
 def results_to_df(simulation_results, store=False, store_name=None):
     """ Convers the simulation results to a dataframe, adding a "timestep" column to it
         Returns a dataframe with the information requested above, and stores it if store=True """
 
-    simulation_results["Time"] = list(range(1, len(simulation_results["T_index"]) + 1))
+    simulation_results["Time"] = list(
+        range(1, len(simulation_results["T_index"]) + 1))
     output = pd.DataFrame(simulation_results)
 
     if store:
@@ -328,4 +369,3 @@ def get_nodes_per_state(X, graph, state):
     """ Get the nodes that have a given state in the latest timestep of the SEIRS+ model
         Since nodes are represented by their properties in this case, this will return a list of property dicts """
     return [node for node in graph.nodes if X[node] == state]
-
