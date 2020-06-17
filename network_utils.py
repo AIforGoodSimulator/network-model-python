@@ -248,6 +248,36 @@ def run_simulation(model, t, print_info=False, store_every=1):
         
     return node_states, simulation_results
 
+def find_whole_time(tseries, T):
+    idt=[]
+    for t in range(0, T + 1):
+        idt.append(np.abs(tseries - t).argmin())
+    return idt
+
+def run_simulation_test(model, t, print_info=False):
+    node_states = dict()
+    simulation_results = defaultdict(list)
+    
+    print(f"Running simulation for {t} steps...\n")
+    model.run(T=t, verbose=print_info)
+    # Store the quantities of the time step closest to the integer
+    time_stamps=model.tseries
+    idt=find_whole_time(time_stamps,t)
+    # Store the quantities of each integer time steps 
+    simulation_results["Symptomatic"]=model.numS[idt]
+    simulation_results["Exposed"]=model.numE[idt]
+    simulation_results["Infected_Presymptomatic"]=model.numI_pre[idt]
+    simulation_results["Infected_Symptomatic"]=model.numI_S[idt]
+    simulation_results["Infected_Asymptomatic"]=model.numI_A[idt]
+    simulation_results["Hospitalized"]=model.numH[idt]
+    simulation_results["Recovered"]=model.numR[idt]
+    simulation_results["Fatalities"]=model.numF[idt]
+    simulation_results["Detected_Presymptomatic"]=model.numD_pre[idt]
+    simulation_results["Detected_Symptomatic"]=model.numD_S[idt]
+    simulation_results["Detected_Asymptomatic"]=model.numD_A[idt]
+
+    return simulation_results
+    
 
 def output_df(model, graph, properties, states, store=False, store_name=None):
     """ Say we wanted to get the number of deaths and infectious symptomatic individuals per ethnicity:
