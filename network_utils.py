@@ -258,29 +258,44 @@ def find_whole_time(tseries, T):
         idt.append(np.abs(tseries - t).argmin())
     return idt
 
-def run_simulation_test(model, t, print_info=False):
+def run_simulation_group(model, t, print_info=False, store_every=1):
     node_states = dict()
     simulation_results = defaultdict(list)
-    
+
     print(f"Running simulation for {t} steps...\n")
-    model.run(T=t, verbose=print_info)
-    # Store the quantities of the time step closest to the integer
+
+    for i in tqdm(range(1, t + 1)):
+        model.run(T=1, verbose=print_info)
+
+        if i % store_every == 0:
+            # Store the node states - an array of size (1, num_nodes) -> we store a copy because the array gets updated
+            node_states[i] = np.copy(model.X.T)
+
+            # Store the quantities of the last time step t 
+            simulation_results["Symptomatic"].append(model.numS[-1])
+            simulation_results["Exposed"].append(model.numE[-1])
+            simulation_results["Infected_Presymptomatic"].append(model.numI_pre[-1])
+            simulation_results["Infected_Symptomatic"].append(model.numI_S[-1])
+            simulation_results["Infected_Asymptomatic"].append(model.numI_A[-1])
+            simulation_results["Hospitalized"].append(model.numH[-1])
+            simulation_results["Recovered"].append(model.numR[-1])
+            simulation_results["Fatalities"].append(model.numF[-1])
+            simulation_results["Detected_Presymptomatic"].append(model.numD_pre[-1])
+            simulation_results["Detected_Symptomatic"].append(model.numD_S[-1])
+            simulation_results["Detected_Asymptomatic"].append(model.numD_A[-1])
+            simulation_results["T_index"].append(model.tidx)
+    
+    group_data=model.nodeGroupData
     time_stamps=model.tseries
     idt=find_whole_time(time_stamps,t)
-    # Store the quantities of each integer time steps 
-    simulation_results["Symptomatic"]=model.numS[idt]
-    simulation_results["Exposed"]=model.numE[idt]
-    simulation_results["Infected_Presymptomatic"]=model.numI_pre[idt]
-    simulation_results["Infected_Symptomatic"]=model.numI_S[idt]
-    simulation_results["Infected_Asymptomatic"]=model.numI_A[idt]
-    simulation_results["Hospitalized"]=model.numH[idt]
-    simulation_results["Recovered"]=model.numR[idt]
-    simulation_results["Fatalities"]=model.numF[idt]
-    simulation_results["Detected_Presymptomatic"]=model.numD_pre[idt]
-    simulation_results["Detected_Symptomatic"]=model.numD_S[idt]
-    simulation_results["Detected_Asymptomatic"]=model.numD_A[idt]
-
-    return simulation_results
+    timed_group_data=group_data.copy()
+    for group,group_detail in group_data.items():
+        for key,value in group_detail.items():
+            if key!='nodes' and  key!='mask' and key!='N':
+                timed_group_data[group][key]=value[idt]
+    
+    
+    return node_states,simulation_results,timed_group_data
     
 
 def results_to_df(simulation_results, store=False, store_name=None):
