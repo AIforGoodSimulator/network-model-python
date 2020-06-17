@@ -8,11 +8,12 @@ import numpy as np
 from collections import defaultdict
 
 STATE_DICTIONARY = {"Susceptible": 1, "Exposed": 2, "Infectious_Presymptomatic": 3,
-                     "Infectious_Symptomatic": 4, "Infectious_Asymptomatic": 5, "Hospitalized": 6,
+                    "Infectious_Symptomatic": 4, "Infectious_Asymptomatic": 5, "Hospitalized": 6,
                     "Recovered": 7, "Deceased": 8, "Detected_Exposed": 9, "Detected_Presymptomatic": 10,
                     "Detected_Symptomatic": 11, "Detected_Asymptomatic": 12}
 
 
+####### NETWORK CREATION UTILS! ################
 def create_graph(n_structures, start_idx, population, max_pop_per_struct, **kwargs):
     """ Creates a networkX graph containing all the population in the camp that is in a given structure (currently just isoboxes).
         Draws edges between people from the same isobox and returns the networkX graph and an adjacency list
@@ -162,7 +163,7 @@ def connect_neighbors(base_graph, start_idx, n_structures, nodes_per_structure, 
             graph.add_edges_from([(i, j) for i in nodes_per_structure[structure] \
                                   for j in nodes_per_structure[neighbor] if
                                   graph.nodes[i]["ethnicity"] == graph.nodes[j]["ethnicity"]],
-                                  weight=edge_weight, label=label)
+                                 weight=edge_weight, label=label)
 
     return graph
 
@@ -195,39 +196,42 @@ def connect_food_queue(base_graph, nodes_per_structure, edge_weight, label):
                 graph.add_edge(food_bois[i], food_bois[j], weight=edge_weight, label=label)
     return graph
 
+
 def create_node_groups(graph):
     """
     create node groups for each 10-year age bucket so the main simulation can track the results for people in each age bucket
     """
-    AGE_BUCKET=9
-    graph_data=list(graph.nodes(data='age'))
-    node_groups={}
+    AGE_BUCKET = 9
+    graph_data = list(graph.nodes(data='age'))
+    node_groups = {}
     for age in range(AGE_BUCKET):
-        nodeList=[]
-        if age==8:
-            groupName=f'age>{age*10}'
+        nodeList = []
+        if age == 8:
+            groupName = f'age>{age * 10}'
         else:
-            groupName=f'age{age*10}-{(age+1)*10}'
+            groupName = f'age{age * 10}-{(age + 1) * 10}'
         for node in graph_data:
-            if age==8:
-                if node[1]>=age*10:
+            if age == 8:
+                if node[1] >= age * 10:
                     nodeList.append(node[0])
             else:
-                if node[1]>=age*10 and node[1]<(age+1)*10:
+                if node[1] >= age * 10 and node[1] < (age + 1) * 10:
                     nodeList.append(node[0])
-        node_groups[groupName]=nodeList
+        node_groups[groupName] = nodeList
     return node_groups
+
+
 ####### MODEL UTILS! ################
 
 def run_simulation(model, t, print_info=False, store_every=1):
     node_states = dict()
     simulation_results = defaultdict(list)
-    
+
     print(f"Running simulation for {t} steps...\n")
-    
+
     for i in tqdm(range(1, t + 1)):
         model.run(T=1, verbose=print_info)
-        
+
         if i % store_every == 0:
             # Store the node states - an array of size (1, num_nodes) -> we store a copy because the array gets updated
             node_states[i] = np.copy(model.X.T)
@@ -244,8 +248,8 @@ def run_simulation(model, t, print_info=False, store_every=1):
             simulation_results["Detected_Presymptomatic"].append(model.numD_pre[-1])
             simulation_results["Detected_Symptomatic"].append(model.numD_S[-1])
             simulation_results["Detected_Asymptomatic"].append(model.numD_A[-1])
+            simulation_results["T_index"].append(model.tidx)
 
-        
     return node_states, simulation_results
 
 def find_whole_time(tseries, T):
@@ -279,31 +283,18 @@ def run_simulation_test(model, t, print_info=False):
     return simulation_results
     
 
-def output_df(model, graph, properties, states, store=False, store_name=None):
-    """ Say we wanted to get the number of deaths and infectious symptomatic individuals per ethnicity:
-        - Properties is a list of ['ethnicity']
-        - States is a list of ['Infectious_Symp', 'Deceased']
-
+def results_to_df(simulation_results, store=False, store_name=None):
+    """ Convers the simulation results to a dataframe, adding a "timestep" column to it
         Returns a dataframe with the information requested above, and stores it if store=True """
 
-
-    ## TODO: For now we won't store properties, just statistics (?)
-
-    output = pd.DataFrame(columns=states)
-    # node_groups = defaultdict(list)
-    state_counts = defaultdict(list)
-
-    for state in states:
-        # Get all the nodes in a given state - we can access their properties as well by feeding the state matrix X
-        nodes = get_nodes_per_state(model.X.T, graph, STATE_DICTIONARY[state])
-
-        # Update columns
-        state_counts[state].append(len(nodes))
+    simulation_results["Time"] = list(range(1, len(simulation_results["T_index"]) + 1))
+    output = pd.DataFrame(simulation_results)
 
     if store:
         output.to_csv(store_name)
 
     return output
+
 
 ###########################################
 
@@ -322,5 +313,4 @@ def get_nodes_per_state(X, graph, state):
     """ Get the nodes that have a given state in the latest timestep of the SEIRS+ model
         Since nodes are represented by their properties in this case, this will return a list of property dicts """
     return [node for node in graph.nodes if X[node] == state]
-
 
