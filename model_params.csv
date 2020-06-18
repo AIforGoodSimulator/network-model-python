@@ -1,0 +1,19 @@
+Name,Value,Unit,Type,Explanation,Notes,Source (see word doc)
+Better hygiene ,0.7,,Control,"Effect on infection rate. Handing out masks, better sanitation?",,assumed
+,,,,,,
+Transmission rate,0.64,,Model Parameter,,Low,Need
+Transmission rate,1.28,,Model Parameter,,Medium,Need
+Transmission rate,2.56,,Model Parameter,,High,Need
+Household weight,0.98,,Model Parameter,,,
+Neighbour weight,0.017,,Model Parameter,,,
+Food weight,0.407,,Model Parameter,,,
+Progression period,5.1,Days,Model Parameter,Time to progress to being infectious,,"1, Table S1"
+Recovery period,18,Days,Model Parameter,Time to recover,,
+hosp period,11.4,Days,Model Parameter,Time stay in hosp,,"1, Table S1"
+death rate,0.75,,Model Parameter,Overall death rate,,Need
+,,,,,,
+probability of global contact,1,,Model Parameter,,,"1, Table S1"
+probability of detecting global contact,1,,Model Parameter,,,"1, Table S2"
+,,,,,,
+initial symptomatic cases,1,,Model Parameter,Initial Seeding,,not needed
+initial asymptomatic cases,0,,Model Parameter,Initial Seeding,,
