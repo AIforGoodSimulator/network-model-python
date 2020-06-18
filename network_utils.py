@@ -6,6 +6,7 @@ from tqdm import tqdm
 import pandas as pd
 import numpy as np
 from collections import defaultdict
+import pickle as pkl
 
 STATE_DICTIONARY = {
     "Susceptible": 1,
@@ -85,16 +86,6 @@ def create_graph(
     return g, nodes_per_struct
 
 
-def create_distancing_graph(base_graph, scale=20, min_num_edges=8):
-    return remove_edges_from_graph(base_graph, ["food"], scale, min_num_edges)
-
-
-def create_quarantine_graph(base_graph, scale=10, min_num_edges=4):
-    return remove_edges_from_graph(
-        base_graph, [
-            "food", "friendship"], scale, min_num_edges)
-
-
 def remove_edges_from_graph(base_graph, edge_label_list, scale, min_num_edges):
     """ Randomly remove some of the edges that have a label included in the label list (i.e 'food', 'neighbors', etc)
         The scale is a parameter for the exponential distribution and the min_num_edges the minimum number of edges
@@ -117,13 +108,25 @@ def remove_edges_from_graph(base_graph, edge_label_list, scale, min_num_edges):
             if quarantine_edge_num <= len(neighbors):
                 # Create the list of neighbors to keep
                 quarantine_keep_neighbors = np.random.choice(
-                    neighbors, size=quarantine_edge_num, replace=False)
+                    neighbors, size=quarantine_edge_num, replace=True)
 
                 # Remove edges that are not in te list of neighbors to keep
                 for neighbor in neighbors:
                     if neighbor not in quarantine_keep_neighbors:
                         graph.remove_edge(node, neighbor)
 
+    return graph
+
+
+def remove_all_edges(base_graph, edge_label_list):
+    graph = base_graph.copy()
+    for node in graph:
+        neighbors = [neighbor for neighbor in list(graph[node].keys())
+                             if graph.edges[node, neighbor]["label"] in edge_label_list]
+
+        for neighbor in neighbors:
+            graph.remove_edge(node, neighbor)
+        
     return graph
 
 
@@ -240,6 +243,31 @@ def connect_food_queue(base_graph, nodes_per_structure, edge_weight, label):
                     food_bois[j],
                     weight=edge_weight,
                     label=label)
+    return graph
+
+
+def create_multiple_food_queues(base_graph, n_food_queues_per_block, food_weight, nodes_per_struct, grids):
+    graph = base_graph.copy()
+    queue_num = 0
+
+    for grid in grids:
+        longest_axis = np.argmax(grid.shape)
+        index_limit = grid.shape[longest_axis] // n_food_queues_per_block
+        subgrids = []
+        if not longest_axis:
+            for i in range(n_food_queues_per_block):
+                subgrids.append(grid[i * index_limit:(i + 1) * index_limit, :])
+        else:
+            for i in range(n_food_queues_per_block):
+                subgrids.append(grid[:, i * index_limit:(i + 1) * index_limit])
+        
+        for i in range(len(subgrids)):
+            subgrid = subgrids[i]
+            nodes_per_struct_subgrid = [nodes_per_struct[subgrid[i][j]] for i in range(len(subgrid)) for j in range(len(subgrid[i]))]
+            
+            graph = connect_food_queue(graph, nodes_per_struct_subgrid, food_weight, f"food_{queue_num}")
+            queue_num += 1
+
     return graph
 
 
@@ -369,3 +397,21 @@ def get_nodes_per_state(X, graph, state):
     """ Get the nodes that have a given state in the latest timestep of the SEIRS+ model
         Since nodes are represented by their properties in this case, this will return a list of property dicts """
     return [node for node in graph.nodes if X[node] == state]
+
+
+def save_graph(graph, nodes_per_struct, name):
+    with open(name + ".graph", "wb") as f:
+        pkl.dump(graph, f)
+    
+    with open(name + ".nps", "wb") as f:
+        pkl.dump(nodes_per_struct, f)
+
+
+def load_graph(name):
+    with open(name + ".graph", "rb") as f:
+        graph = pkl.load(f)
+        
+    with open(name + ".nps", "rb") as f:
+        nodes_per_struct = pkl.load(f)
+        
+    return graph, nodes_per_struct
