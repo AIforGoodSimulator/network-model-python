@@ -53,8 +53,10 @@ class Interventions:
             for parameter, value in self.checkpoints.items():
                 value.pop(t_index)
 
-    @staticmethod
-    def checkpoints(self):
+    def clear(self):
+        self.checkpoints.clear()
+
+    def get_checkpoints(self):
         return dict(self.checkpoints)
 
 
