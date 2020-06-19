@@ -1,5 +1,5 @@
 # Network Model for COVID-19 in Moria
-By Marcelo Sandoval-Castaneda and Daniel Firebanks-Quevedo. Built using NetworkX and SEIRS+ in Python.
+By Marcelo Sandoval-Castañeda and Daniel Firebanks-Quevedo. Built using NetworkX and SEIRS+ in Python.
 
 ## The Network
 A network is designed using NetworkX to represent social and day-to-day interactions in the Moria refugee camp in Lesbos, Greece. Isoboxes to represent houses inside the camp are constructed in a grid of 29 * 28, to which each of the camp inhabitants is assigned to at random, where each isobox contains a maximum of **Poisson(λ=10)** inhabitants. Each inhabitant is represented by a node, that contains the data for the isobox they live in, their ethnicity, thier age, and their gender.
@@ -31,7 +31,7 @@ Running this simulation with only the people that live in the houses (around 810
 ## Interventions
 We have modelled four possible interventions to combat COVID-19 in refugee camps: social distancing, quarantine, use of masks, and multiple food queues. Examples of these can be found in the `NetworkModelling.ipynb` notebook.
 
-Both distancing and quarantine graphs can be implemented using the function `remove_edges_from_graph()` inside `network_utils.py`. It takes as parameters a NetworkX graph, a scale of the deletion (the greater, the more edges are deleted), a list of edge labels to be targeted (`['food']` for social distancing within the queue and `['food', 'friendship']` for quarantine), and a minimum number of edges to be kept.
+Both distancing and quarantine graphs can be implemented using the function `remove_edges_from_graph()` inside `network_utils.py`. It takes as parameters a NetworkX graph, the scale (the greater, the more edges are kept), a list of edge labels to be targeted (`['food']` for social distancing within the queue and `['food', 'friendship']` for quarantine), and a minimum number of edges to be kept.
 
 ```python
 distancing_graph = remove_edges_from_graph(graph_1fq, scale=10, edge_label_list=["food"], min_num_edges=4)
