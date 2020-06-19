@@ -28,10 +28,29 @@ Running this simulation with only the people that live in the houses (around 810
 
 ![Image not found.](plots/Infections_IsoWeight=1_NeighWeight=0.5_FoodWeight=0.2_Beta=1.28_Gamma=0.056_Sigma=0.87_initI=10_figBasic.png)
 
-## Todo List
-- Get as specific as possible with the interventions that are possible to model.
-- Convert our notebooks into executable Python files.
-- Restructure the repo for organization's sake.
+## Interventions
+We have modelled four possible interventions to combat COVID-19 in refugee camps: social distancing, quarantine, use of masks, and multiple food queues. Examples of these can be found in the `NetworkModelling.ipynb` notebook.
+
+Both distancing and quarantine graphs can be implemented using the function `remove_edges_from_graph()` inside `network_utils.py`. It takes as parameters a NetworkX graph, a scale of the deletion (the greater, the more edges are deleted), a list of edge labels to be targeted (`['food']` for social distancing within the queue and `['food', 'friendship']` for quarantine), and a minimum number of edges to be kept.
+
+```python
+distancing_graph = remove_edges_from_graph(graph_1fq, scale=10, edge_label_list=["food"], min_num_edges=4)
+quarantine_graph = remove_edges_from_graph(graph_1fq, scale=2, edge_label_list=["food", "friendship"], min_num_edges=2)
+```
+
+The use of masks can be implemented through the `Intervention` class inside `intervention_utils.py`. Through it, we can `.add` an intervention that alters the rate of transmission (β) of our model at a given timestep, which is the intended effect of the use of masks in a pandemic.
+
+```python
+interventions = Interventions()
+reduction_percentage = 0.5
+interventions.add(graph_1fq, 63, beta=transmission_rate*reduction_percentage)
+```
+
+Lastly, multiple food queues can be implemented using the fuction `create_multiple_food_queues`, inside `network_utils.py`. This takes a NetworkX graph, the number of food queues to be allocated per block (in the case of Moria, we have identified four main blocks), the weight of the connection to the food queue, a list containing nodes representing people living in each household, and a list of grids representing each of the blocks.
+
+```python
+graph_4fq = create_multiple_food_queues(graph, 1, food_weight, nodes_per_struct, [grid_isoboxes, grid_block1, grid_block2, grid_block3])
+```
 
 ## Launch Jupyter Notebooks for Data Science in Docker
 ```
