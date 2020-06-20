@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict
 import pickle as pkl
+import os
 
 STATE_DICTIONARY = {
     "Susceptible": 1,
@@ -341,18 +342,12 @@ def find_whole_time(tseries, T):
     return idt
 
 def run_simulation_group(model, t, print_info=False, store_every=1):
-    node_states = dict()
     simulation_results = defaultdict(list)
 
-    print(f"Running simulation for {t} steps...\n")
-
-    for i in tqdm(range(1, t + 1)):
+    for i in range(t + 1):
         model.run(T=1, verbose=print_info)
 
         if i % store_every == 0:
-            # Store the node states - an array of size (1, num_nodes) -> we store a copy because the array gets updated
-            node_states[i] = np.copy(model.X.T)
-
             # Store the quantities of the last time step t 
             simulation_results["Symptomatic"].append(model.numS[-1])
             simulation_results["Exposed"].append(model.numE[-1])
@@ -368,17 +363,79 @@ def run_simulation_group(model, t, print_info=False, store_every=1):
             simulation_results["T_index"].append(model.tidx)
     
     group_data=model.nodeGroupData
-    time_stamps=model.tseries
-    idt=find_whole_time(time_stamps,t)
-    timed_group_data=group_data.copy()
     for group,group_detail in group_data.items():
         for key,value in group_detail.items():
-            if key!='nodes' and  key!='mask' and key!='N':
-                timed_group_data[group][key]=value[idt]
-    
-    
-    return node_states,simulation_results,timed_group_data
+            if key=='numS':
+                simulation_results[f'Symptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numE':
+                simulation_results[f'Exposed {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numI_pre':
+                simulation_results[f'Infected_Presymptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numI_S':
+                simulation_results[f'Infected_Symptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numI_A':
+                simulation_results[f'Infected_Asymptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numH':
+                simulation_results[f'Hospitalized {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numR':
+                simulation_results[f'Recovered {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numF':
+                simulation_results[f'Fatalities {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numD_E':
+                simulation_results[f'Detected_Exposed {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numD_pre':
+                simulation_results[f'Detected_Presymptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numD_S':
+                simulation_results[f'Detected_Symptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numD_A':
+                simulation_results[f'Detected_Asymptomatic {group}']=list(value[simulation_results["T_index"]])
+    return simulation_results
 
+def run_simulation_group_parallel(model, t, print_info=False, store_every=1):
+    simulation_results = defaultdict(list)
+    model.run(T=t, verbose=print_info)
+
+    simulation_results["T_index"]=find_whole_time(model.tseries,t)
+    # Store the quantities of the last time step t 
+    simulation_results["Symptomatic"]=model.numS[simulation_results["T_index"]]
+    simulation_results["Exposed"]=model.numE[simulation_results["T_index"]]
+    simulation_results["Infected_Presymptomatic"]=model.numI_pre[simulation_results["T_index"]]
+    simulation_results["Infected_Symptomatic"]=model.numI_S[simulation_results["T_index"]]
+    simulation_results["Infected_Asymptomatic"]=model.numI_A[simulation_results["T_index"]]
+    simulation_results["Hospitalized"]=model.numH[simulation_results["T_index"]]
+    simulation_results["Recovered"]=model.numR[simulation_results["T_index"]]
+    simulation_results["Fatalities"]=model.numF[simulation_results["T_index"]]
+    simulation_results["Detected_Presymptomatic"]=model.numD_pre[simulation_results["T_index"]]
+    simulation_results["Detected_Symptomatic"]=model.numD_S[simulation_results["T_index"]]
+    simulation_results["Detected_Asymptomatic"]=model.numD_A[simulation_results["T_index"]]
+    group_data=model.nodeGroupData
+    for group,group_detail in group_data.items():
+        for key,value in group_detail.items():
+            if key=='numS':
+                simulation_results[f'Symptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numE':
+                simulation_results[f'Exposed {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numI_pre':
+                simulation_results[f'Infected_Presymptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numI_S':
+                simulation_results[f'Infected_Symptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numI_A':
+                simulation_results[f'Infected_Asymptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numH':
+                simulation_results[f'Hospitalized {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numR':
+                simulation_results[f'Recovered {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numF':
+                simulation_results[f'Fatalities {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numD_E':
+                simulation_results[f'Detected_Exposed {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numD_pre':
+                simulation_results[f'Detected_Presymptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numD_S':
+                simulation_results[f'Detected_Symptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numD_A':
+                simulation_results[f'Detected_Asymptomatic {group}']=list(value[simulation_results["T_index"]])
+    return simulation_results
 
 def results_to_df(simulation_results, store=False, store_name=None):
     """ Convers the simulation results to a dataframe, adding a "timestep" column to it
@@ -393,6 +450,18 @@ def results_to_df(simulation_results, store=False, store_name=None):
 
     return output
 
+def results_to_df_group(simulation_results, store=False, store_name=None):
+    """ Convers the simulation results to a dataframe, adding a "timestep" column to it
+        Returns a dataframe with the information requested above, and stores it if store=True """
+
+    simulation_results["Time"] = list(
+        range(1, len(simulation_results["T_index"]) + 1))
+    output = pd.DataFrame(simulation_results)
+
+    if store:
+        output.to_csv(os.path.join('results',store_name))
+
+    return output
 
 ###########################################
 

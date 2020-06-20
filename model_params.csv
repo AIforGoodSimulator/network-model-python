@@ -7,9 +7,9 @@ Transmission rate,2.56,,Model Parameter,,High,Need
 Household weight,0.98,,Model Parameter,,,
 Neighbour weight,0.017,,Model Parameter,,,
 Food weight,0.407,,Model Parameter,,,
-Progression period,5.1,Days,Model Parameter,Time to progress to being infectious,,"1, Table S1"
+Progression period,4,Days,Model Parameter,Time to progress to being infectious,,"1, Table S1"
 Recovery period,18,Days,Model Parameter,Time to recover,,
-hosp period,11.4,Days,Model Parameter,Time stay in hosp,,"1, Table S1"
+hosp period,8,Days,Model Parameter,Time stay in hosp,,"1, Table S1"
 death rate,0.75,,Model Parameter,Overall death rate,,Need
 ,,,,,,
 probability of global contact,1,,Model Parameter,,,"1, Table S1"

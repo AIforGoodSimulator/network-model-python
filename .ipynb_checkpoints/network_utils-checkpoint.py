@@ -6,6 +6,7 @@ from tqdm import tqdm
 import pandas as pd
 import numpy as np
 from collections import defaultdict
+import pickle as pkl
 
 STATE_DICTIONARY = {
     "Susceptible": 1,
@@ -85,16 +86,6 @@ def create_graph(
     return g, nodes_per_struct
 
 
-def create_distancing_graph(base_graph, scale=20, min_num_edges=8):
-    return remove_edges_from_graph(base_graph, ["food"], scale, min_num_edges)
-
-
-def create_quarantine_graph(base_graph, scale=10, min_num_edges=4):
-    return remove_edges_from_graph(
-        base_graph, [
-            "food", "friendship"], scale, min_num_edges)
-
-
 def remove_edges_from_graph(base_graph, edge_label_list, scale, min_num_edges):
     """ Randomly remove some of the edges that have a label included in the label list (i.e 'food', 'neighbors', etc)
         The scale is a parameter for the exponential distribution and the min_num_edges the minimum number of edges
@@ -117,13 +108,25 @@ def remove_edges_from_graph(base_graph, edge_label_list, scale, min_num_edges):
             if quarantine_edge_num <= len(neighbors):
                 # Create the list of neighbors to keep
                 quarantine_keep_neighbors = np.random.choice(
-                    neighbors, size=quarantine_edge_num, replace=False)
+                    neighbors, size=quarantine_edge_num, replace=True)
 
                 # Remove edges that are not in te list of neighbors to keep
                 for neighbor in neighbors:
                     if neighbor not in quarantine_keep_neighbors:
                         graph.remove_edge(node, neighbor)
 
+    return graph
+
+
+def remove_all_edges(base_graph, edge_label_list):
+    graph = base_graph.copy()
+    for node in graph:
+        neighbors = [neighbor for neighbor in list(graph[node].keys())
+                             if graph.edges[node, neighbor]["label"] in edge_label_list]
+
+        for neighbor in neighbors:
+            graph.remove_edge(node, neighbor)
+        
     return graph
 
 
@@ -243,6 +246,31 @@ def connect_food_queue(base_graph, nodes_per_structure, edge_weight, label):
     return graph
 
 
+def create_multiple_food_queues(base_graph, n_food_queues_per_block, food_weight, nodes_per_struct, grids):
+    graph = base_graph.copy()
+    queue_num = 0
+
+    for grid in grids:
+        longest_axis = np.argmax(grid.shape)
+        index_limit = grid.shape[longest_axis] // n_food_queues_per_block
+        subgrids = []
+        if not longest_axis:
+            for i in range(n_food_queues_per_block):
+                subgrids.append(grid[i * index_limit:(i + 1) * index_limit, :])
+        else:
+            for i in range(n_food_queues_per_block):
+                subgrids.append(grid[:, i * index_limit:(i + 1) * index_limit])
+        
+        for i in range(len(subgrids)):
+            subgrid = subgrids[i]
+            nodes_per_struct_subgrid = [nodes_per_struct[subgrid[i][j]] for i in range(len(subgrid)) for j in range(len(subgrid[i]))]
+            
+            graph = connect_food_queue(graph, nodes_per_struct_subgrid, food_weight, f"food_{queue_num}")
+            queue_num += 1
+
+    return graph
+
+
 def create_node_groups(graph):
     """
     create node groups for each 10-year age bucket so the main simulation can track the results for people in each age bucket
@@ -307,36 +335,62 @@ def run_simulation(model, t, checkpoints=None, simulation_results=None, nodes_st
 
 
 def find_whole_time(tseries, T):
-    idt = []
+    idt=[]
     for t in range(0, T + 1):
         idt.append(np.abs(tseries - t).argmin())
     return idt
 
-
-def run_simulation_test(model, t, print_info=False):
-    node_states = dict()
+def run_simulation_group(model, t, print_info=False, store_every=1):
     simulation_results = defaultdict(list)
 
     print(f"Running simulation for {t} steps...\n")
-    model.run(T=t, verbose=print_info)
-    # Store the quantities of the time step closest to the integer
-    time_stamps = model.tseries
-    idt = find_whole_time(time_stamps, t)
-    # Store the quantities of each integer time steps
-    simulation_results["Susceptible"] = model.numS[idt]
-    simulation_results["Exposed"] = model.numE[idt]
-    simulation_results["Infected_Presymptomatic"] = model.numI_pre[idt]
-    simulation_results["Infected_Symptomatic"] = model.numI_S[idt]
-    simulation_results["Infected_Asymptomatic"] = model.numI_A[idt]
-    simulation_results["Hospitalized"] = model.numH[idt]
-    simulation_results["Recovered"] = model.numR[idt]
-    simulation_results["Fatalities"] = model.numF[idt]
-    simulation_results["Detected_Presymptomatic"] = model.numD_pre[idt]
-    simulation_results["Detected_Symptomatic"] = model.numD_S[idt]
-    simulation_results["Detected_Asymptomatic"] = model.numD_A[idt]
 
+    for i in tqdm(range(t + 1)):
+        model.run(T=1, verbose=print_info)
+
+        if i % store_every == 0:
+            # Store the quantities of the last time step t 
+            simulation_results["Symptomatic"].append(model.numS[-1])
+            simulation_results["Exposed"].append(model.numE[-1])
+            simulation_results["Infected_Presymptomatic"].append(model.numI_pre[-1])
+            simulation_results["Infected_Symptomatic"].append(model.numI_S[-1])
+            simulation_results["Infected_Asymptomatic"].append(model.numI_A[-1])
+            simulation_results["Hospitalized"].append(model.numH[-1])
+            simulation_results["Recovered"].append(model.numR[-1])
+            simulation_results["Fatalities"].append(model.numF[-1])
+            simulation_results["Detected_Presymptomatic"].append(model.numD_pre[-1])
+            simulation_results["Detected_Symptomatic"].append(model.numD_S[-1])
+            simulation_results["Detected_Asymptomatic"].append(model.numD_A[-1])
+            simulation_results["T_index"].append(model.tidx)
+    
+    group_data=model.nodeGroupData
+    for group,group_detail in group_data.items():
+        for key,value in group_detail.items():
+            if key=='numS':
+                simulation_results[f'Symptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numE':
+                simulation_results[f'Exposed {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numI_pre':
+                simulation_results[f'Infected_Presymptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numI_S':
+                simulation_results[f'Infected_Symptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numI_A':
+                simulation_results[f'Infected_Asymptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numH':
+                simulation_results[f'Hospitalized {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numR':
+                simulation_results[f'Recovered {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numF':
+                simulation_results[f'Fatalities {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numD_E':
+                simulation_results[f'Detected_Exposed {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numD_pre':
+                simulation_results[f'Detected_Presymptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numD_S':
+                simulation_results[f'Detected_Symptomatic {group}']=list(value[simulation_results["T_index"]])
+            elif key=='numD_A':
+                simulation_results[f'Detected_Asymptomatic {group}']=list(value[simulation_results["T_index"]])
     return simulation_results
-
 
 def results_to_df(simulation_results, store=False, store_name=None):
     """ Convers the simulation results to a dataframe, adding a "timestep" column to it
@@ -369,3 +423,21 @@ def get_nodes_per_state(X, graph, state):
     """ Get the nodes that have a given state in the latest timestep of the SEIRS+ model
         Since nodes are represented by their properties in this case, this will return a list of property dicts """
     return [node for node in graph.nodes if X[node] == state]
+
+
+def save_graph(graph, nodes_per_struct, name):
+    with open(name + ".graph", "wb") as f:
+        pkl.dump(graph, f)
+    
+    with open(name + ".nps", "wb") as f:
+        pkl.dump(nodes_per_struct, f)
+
+
+def load_graph(name):
+    with open(name + ".graph", "rb") as f:
+        graph = pkl.load(f)
+        
+    with open(name + ".nps", "rb") as f:
+        nodes_per_struct = pkl.load(f)
+        
+    return graph, nodes_per_struct
