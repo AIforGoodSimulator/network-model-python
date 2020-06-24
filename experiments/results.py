@@ -27,10 +27,27 @@ for fname in files:
 infected_nums = pd.DataFrame()
 hospitalized_nums = pd.DataFrame()
 fatalities_nums = pd.DataFrame()
+fatalities_rates = pd.DataFrame()
+summary_df = pd.DataFrame(columns=['highest_infections_day',
+                                   'highest_infections',
+                                   'highest_hospitalizations_day',
+                                   'highest_hospitalizations',
+                                   'hospital_person_days',
+                                   'highest_deaths_day',
+                                   'highest_deaths'])
 for i in range(len(files)):
     infected_nums[files[i].split('_')[0]] = networks[i]['Infected'].values
     hospitalized_nums[files[i].split('_')[0]] = networks[i]['Hospitalized'].values
     fatalities_nums[files[i].split('_')[0]] = networks[i]['Fatalities'].values
+    fatalities_rates[files[i].split('_')[0]] = networks[i]['delta_Fatalities'].values
+
+    summary_df.loc[i] = [np.argmax(networks[i]['Infected'].values),
+                         max(networks[i]['Infected']),
+                         np.argmax(networks[i]['Hospitalized'].values),
+                         max(networks[i]['Hospitalized']),
+                         sum(networks[i]['Hospitalized'].values),
+                         np.argmax(networks[i]['delta_Fatalities'].values),
+                         max(networks[i]['delta_Fatalities'])]
 
 base_graphs = []
 intervention_graphs = []
@@ -49,25 +66,27 @@ hospitalized_nums['AvgInt'] = hospitalized_nums[intervention_graphs].mean(axis=1
 fatalities_nums['AvgBase'] = fatalities_nums[base_graphs].mean(axis=1)
 fatalities_nums['AvgInt'] = fatalities_nums[intervention_graphs].mean(axis=1)
 
+fatalities_rates['AvgBase'] = fatalities_rates[base_graphs].mean(axis=1)
+fatalities_rates['AvgInt'] = fatalities_rates[intervention_graphs].mean(axis=1)
+
 plt.figure()
+plt.title('Total Infected per Day')
 fig1 = sns.lineplot(data=infected_nums[AVGS])
 fig1.figure.savefig('plotted_results/infected_totals.png')
 
 plt.figure()
+plt.title('Total Hospitalized per Day')
 fig2 = sns.lineplot(data=hospitalized_nums[AVGS])
 fig2.figure.savefig('plotted_results/hospitalized_totals.png')
 
 plt.figure()
+plt.title('Total Fatalities per Day')
 fig3 = sns.lineplot(data=fatalities_nums[AVGS])
 fig3.figure.savefig('plotted_results/fatalities_totals.png')
 
-# fatalities_rates = pd.DataFrame({'BaseNetwork1': base_1['delta_Fatalities'].values,
-#                                  'BaseNetwork2': base_2['delta_Fatalities'].values,
-#                                  'BaseNetwork3': base_3['delta_Fatalities'].values})
+plt.figure()
+plt.title('New Fatalities per Day')
+fig4 = sns.lineplot(data=fatalities_rates[AVGS])
+fig4.figure.savefig('plotted_results/fatalities_delta.png')
 
-# fatalities_rates['avg'] = (fatalities_rates['BaseNetwork1'] + fatalities_rates['BaseNetwork2'] + fatalities_rates['BaseNetwork3']) / 3
-
-# plt.figure()
-# fig4 = sns.lineplot(data=fatalities_rates['avg'])
-# fig4.figure.savefig('plotted_results/fatalities_delta.png')
-
+summary_df.to_csv('summary.csv', index=False)
