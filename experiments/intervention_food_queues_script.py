@@ -55,7 +55,7 @@ for i in range(start_idx, start_idx + n_graphs):
 		interventions = Interventions()
 
 		# Amount by which wearing masks reduces the transmission rate
-		reduction_percentage = 0.5
+		reduction_percentage = 0.3
 
 		# Simulate quarantine + masks
 		q_start = 0

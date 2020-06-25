@@ -53,19 +53,19 @@ for i in range(start_idx, start_idx + n_graphs):
 	interventions = Interventions()
 
 	# Amount by which wearing masks reduces the transmission rate
-	reduction_percentage = 0.5
+	reduction_percentage = 0.3
 
 	# Simulate quarantine + masks
-	q_start = 3
-	interventions.add(quarantine_graph, 3, beta=transmission_rate*reduction_percentage)
+	q_start = 0
+	interventions.add(quarantine_graph, q_start, beta=transmission_rate*reduction_percentage)
 
 	# Simulate HALT of quarantine but people still have to wear masks
-	q_end = 63
-	interventions.add(graph, 63, beta=transmission_rate*reduction_percentage)
+	q_end = 150
+	interventions.add(graph, q_end, beta=transmission_rate*reduction_percentage)
 
 	# Simulate HALT of wearing masks
-	m_end = 93
-	interventions.add(graph, 93, beta=transmission_rate)
+	m_end = 200
+	interventions.add(graph, m_end, beta=transmission_rate)
 
 	checkpoints = interventions.get_checkpoints()
 
