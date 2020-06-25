@@ -65,14 +65,14 @@ for i in range(start_idx, start_idx + n_graphs):
 	node_states, simulation_results = run_simulation(model, t_steps)
 
 	# Model name for storage
-	fig_name = f"BaseSympModel{i}_HW={household_weight}_NW={neighbor_weight}_FW={food_weight}_TransR={transmission_rate}_RecR={recovery_rate}_ProgR={progression_rate}_HospR={hosp_rate}_CritR={sum(crit_rate)/len(crit_rate)}_DeathR={death_rate}_initI_S={init_symp_cases}_initI_A={init_asymp_cases}_T={t_steps}"
+	fig_name = f"BaseSympModel{i}_HW={household_weight}_NW={neighbor_weight}_FW={food_weight}_TransR={transmission_rate}_RecR={recovery_rate}_ProgR={progression_rate}_HospR={hosp_rate}_CritR={round(sum(crit_rate)/len(crit_rate), 3)}_DeathR={death_rate}_initI_S={init_symp_cases}_initI_A={init_asymp_cases}_T={t_steps}"
 
 	# Construct results dataframe
 	output_df = results_to_df(simulation_results, store=True, store_name=f"experiments/results/{fig_name}.csv")
 
 	# Plot and store
 	fig, ax = model.figure_basic(show=False)#vlines=interventions.get_checkpoints()['t'])
-	fig.savefig(f"experiments/plots/{fig_name}_figBasic.png")
+	fig.savefig(f"experiments/plots/{fig_name}_fig.png")
 
 
 

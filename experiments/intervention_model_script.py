@@ -46,7 +46,6 @@ for i in range(start_idx, start_idx + n_graphs):
 	food_weight = 0.407
 	graph = connect_food_queue(graph, nodes_per_struct, food_weight, "food")
 
-
 	# Create quarantine graph - This also includes neighbor/friendship edges
 	quarantine_graph = remove_edges_from_graph(graph, scale=2, edge_label_list=["food", "friendship"], min_num_edges=2)
 
@@ -57,12 +56,15 @@ for i in range(start_idx, start_idx + n_graphs):
 	reduction_percentage = 0.5
 
 	# Simulate quarantine + masks
+	q_start = 3
 	interventions.add(quarantine_graph, 3, beta=transmission_rate*reduction_percentage)
 
 	# Simulate HALT of quarantine but people still have to wear masks
+	q_end = 63
 	interventions.add(graph, 63, beta=transmission_rate*reduction_percentage)
 
 	# Simulate HALT of wearing masks
+	m_end = 93
 	interventions.add(graph, 93, beta=transmission_rate)
 
 	checkpoints = interventions.get_checkpoints()
@@ -73,17 +75,18 @@ for i in range(start_idx, start_idx + n_graphs):
 	                                         h=prob_symp_to_hosp, q=prob_detected_global_contact, initI_S=init_symp_cases, initI_A=init_asymp_cases, store_Xseries=True)
 
 	# Run model
-	node_states, simulation_results = run_simulation(model, t_steps)
+	node_states, simulation_results = run_simulation(model, t_steps, checkpoints)
 
 	# Model name for storage
-	fig_name = f"InterventionsBaseModel{i}_HW={household_weight}_NW={neighbor_weight}_FW={food_weight}_TransR={transmission_rate}_RecR={recovery_rate}_ProgR={progression_rate}_HospR={hosp_rate}_CritR={sum(crit_rate)/len(crit_rate)}_DeathR={death_rate}_initI_S={init_symp_cases}_initI_A={init_asymp_cases}_T={t_steps}"
+	fig_name = f"InterventionsBaseModel{i}_HW={household_weight}_NW={neighbor_weight}_FW={food_weight}_TransR={transmission_rate}_RecR={recovery_rate}_ProgR={progression_rate}_HospR={hosp_rate}_CritR={round(sum(crit_rate)/len(crit_rate), 3)}_DeathR={death_rate}_initI_S={init_symp_cases}_initI_A={init_asymp_cases}_T={t_steps}"
+	intervention_deets = f"Qtime={q_start}-{q_end}_Qred={reduction_percentage}_Htime={q_start}-{m_end}"
 
 	# Construct results dataframe
-	output_df = results_to_df(simulation_results, store=True, store_name=f"experiments/results/{fig_name}.csv")
+	output_df = results_to_df(simulation_results, store=True, store_name=f"experiments/results/{fig_name}_{intervention_deets}.csv")
 
 	# Plot and store
 	fig, ax = model.figure_basic(show=False)#vlines=interventions.get_checkpoints()['t'])
-	fig.savefig(f"experiments/plots/{fig_name}_figBasic.png")
+	fig.savefig(f"experiments/plots/{fig_name}_{intervention_deets}_fig.png")
 
 
 
