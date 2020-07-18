@@ -1,5 +1,12 @@
+"""
+	@authors: Marcelo Sandoval-Castañeda and Daniel Firebanks-Quevedo
+
+	Sample usage
+		To run the interventions model with multiple options of food queues for graphs 1-5:
+			python intervention_food_queues_script.py 0 1 5"""
+
 import sys 
-sys.path.append("/Users/dafirebanks/Projects/network_model_python/")
+sys.path.append("~/dafirebanks/Projects/network_model_python/")
 
 import matplotlib.pyplot as plt
 from seirsplus.models import *
@@ -17,13 +24,13 @@ start_idx = int(sys.argv[1])
 n_graphs = int(sys.argv[2])
 
 # SEIRS+ Model parameters
-transmission_rate = 1.28
-progression_rate = round(1/5.1, 3)
-recovery_rate = 0.056 # Approx 1/18 -> Recovery occurs after 18 days
-hosp_rate = round(1/11.4, 3) #1/6.3 # From Tucker Model
+transmission_rate = [1.28]
+progression_rate = [round(1/5.1, 3)]
+recovery_rate = [0.056] # Approx 1/18 -> Recovery occurs after 18 days
+hosp_rate = [round(1/11.4, 3)] #1/6.3 # From Tucker Model
 # crit_rate = 0.3 # From camp_params
 crit_rate = list((sample_pop["death_rate"] / sample_pop["prob_symptomatic"]) / sample_pop["prob_hospitalisation"])
-death_rate = 0.75
+death_rate = [0.75]
 
 prob_global_contact = 1
 prob_detected_global_contact = 1
@@ -71,24 +78,26 @@ for i in range(start_idx, start_idx + n_graphs):
 
 		checkpoints = interventions.get_checkpoints()
 
-		# Model construction
-		model = SymptomaticSEIRSNetworkModel(G=graph, Q=quarantine_graph, beta=transmission_rate, sigma=progression_rate, gamma=recovery_rate, 
-		                                         lamda=progression_rate, mu_H=crit_rate, eta=hosp_rate, p=prob_global_contact, a=prob_asymptomatic, f=death_rate, 
-		                                         h=prob_symp_to_hosp, q=prob_detected_global_contact, initI_S=init_symp_cases, initI_A=init_asymp_cases, store_Xseries=True)
 
-		# Run model
-		node_states, simulation_results = run_simulation(model, t_steps, checkpoints)
+		for transmission_rate, progression_rate, recovery_rate, hosp_rate, death_rate in zip(transmission_rate_list, progression_rate_list, recovery_rate_list, hosp_rate_list, death_rate_list):
+			# Model construction
+			model = SymptomaticSEIRSNetworkModel(G=graph, Q=quarantine_graph, beta=transmission_rate, sigma=progression_rate, gamma=recovery_rate, 
+			                                         lamda=progression_rate, mu_H=crit_rate, eta=hosp_rate, p=prob_global_contact, a=prob_asymptomatic, f=death_rate, 
+			                                         h=prob_symp_to_hosp, q=prob_detected_global_contact, initI_S=init_symp_cases, initI_A=init_asymp_cases, store_Xseries=True)
 
-		# Model name for storage
-		fig_name = f"InterventionsMultFQ{food_queue_number}_Model{i}_HW={household_weight}_NW={neighbor_weight}_FW={food_weight}_TransR={transmission_rate}_RecR={recovery_rate}_ProgR={progression_rate}_HospR={hosp_rate}_CritR={round(sum(crit_rate)/len(crit_rate), 3)}_DeathR={death_rate}_initI_S={init_symp_cases}_initI_A={init_asymp_cases}_T={t_steps}"
-		intervention_deets = f"Qtime={q_start}-{q_end}_Qred={reduction_percentage}_Htime={q_start}-{m_end}"
+			# Run model
+			node_states, simulation_results = run_simulation(model, t_steps, checkpoints)
 
-		# Construct results dataframe
-		output_df = results_to_df(simulation_results, store=True, store_name=f"experiments/results/{fig_name}_{intervention_deets}.csv")
+			# Model name for storage
+			fig_name = f"InterventionsMultFQ{food_queue_number}_Model{i}"
+			add_model_name("experiments/model_names.csv", fig_name, household_weight, neighbor_weight, food_weight, transmission_rate, recovery_rate, progression_rate, hosp_rate, round(sum(crit_rate)/len(crit_rate), 3), death_rate, init_symp_cases, init_asymp_cases, t_steps, f"{q_start}-{q_end}", reduction_percentage, f"{q_start}-{m_end}")
 
-		# Plot and store
-		fig, ax = model.figure_basic(show=False)#vlines=interventions.get_checkpoints()['t'])
-		fig.savefig(f"experiments/plots/{fig_name}_{intervention_deets}_fig.png")
+			# Construct results dataframe
+			output_df = results_to_df(simulation_results, store=True, store_name=f"experiments/results/{fig_name}.csv")
+
+			# Plot and store
+			fig, ax = model.figure_basic(show=False)#vlines=interventions.get_checkpoints()['t'])
+			fig.savefig(f"experiments/plots/{fig_name}_fig.png")
 
 
 

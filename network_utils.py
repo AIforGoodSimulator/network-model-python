@@ -379,6 +379,22 @@ def results_to_df(simulation_results, store=False, store_name=None):
 
     return output
 
+def add_model_name(name_csv, fig_name, 
+    household_weight, neighbor_weight, food_weight, 
+    transmission_rate, recovery_rate, progression_rate, 
+    hosp_rate, crit_rate, death_rate, init_symp_cases, 
+    init_asymp_cases, t_steps, q_time="", q_red="", h_time=""):
+
+    """ Adds the parameters of model fig_name to name_csv """
+
+    name_df = pd.read_csv(name_csv)
+
+    # Add a new model name + parameters as a new row at the end of the df
+    idx = 0 if pd.isnull(df.index.max()) else df.index.max() + 1
+    name_df.loc[idx] = [fig_name, household_weight, neighbor_weight, food_weight, transmission_rate, recovery_rate, progression_rate, hosp_rate, crit_rate, death_rate, init_symp_cases, init_asymp_cases, t_steps, q_time, q_red, h_time]
+
+    # Store as csv again
+    name_df.to_csv(name_csv)
 
 ###########################################
 
