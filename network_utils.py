@@ -318,17 +318,12 @@ def run_simulation(model, t, checkpoints=None, simulation_results=None, nodes_st
             simulation_results["Exposed"].append(model.numE[-1])
             simulation_results["Infected_Presymptomatic"].append(
                 model.numI_pre[-1])
-            simulation_results["Infected_Symptomatic"].append(model.numI_S[-1])
+            simulation_results["Infected_Symptomatic"].append(model.numI_sym[-1])
             simulation_results["Infected_Asymptomatic"].append(
-                model.numI_A[-1])
+                model.numI_asym[-1])
             simulation_results["Hospitalized"].append(model.numH[-1])
             simulation_results["Recovered"].append(model.numR[-1])
             simulation_results["Fatalities"].append(model.numF[-1])
-            simulation_results["Detected_Presymptomatic"].append(
-                model.numD_pre[-1])
-            simulation_results["Detected_Symptomatic"].append(model.numD_S[-1])
-            simulation_results["Detected_Asymptomatic"].append(
-                model.numD_A[-1])
             simulation_results["T_index"].append(model.tidx)
 
     return node_states, simulation_results
@@ -390,7 +385,7 @@ def add_model_name(name_csv, fig_name,
     name_df = pd.read_csv(name_csv)
 
     # Add a new model name + parameters as a new row at the end of the df
-    idx = 0 if pd.isnull(df.index.max()) else df.index.max() + 1
+    idx = 0 if pd.isnull(name_df.index.max()) else name_df.index.max() + 1
     name_df.loc[idx] = [fig_name, household_weight, neighbor_weight, food_weight, transmission_rate, recovery_rate, progression_rate, hosp_rate, crit_rate, death_rate, init_symp_cases, init_asymp_cases, t_steps, q_time, q_red, h_time]
 
     # Store as csv again

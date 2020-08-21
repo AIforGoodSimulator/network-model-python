@@ -81,9 +81,7 @@ for i in range(start_idx, start_idx + n_graphs):
 	param_combo_i = 0
 	for transmission_rate, progression_rate, recovery_rate, hosp_rate, death_rate in zip(transmission_rate_list, progression_rate_list, recovery_rate_list, hosp_rate_list, death_rate_list):
 		# Model construction
-		model = SymptomaticSEIRSNetworkModel(G=graph, Q=quarantine_graph, beta=transmission_rate, sigma=progression_rate, gamma=recovery_rate, 
-		                                         lamda=progression_rate, mu_H=crit_rate, eta=hosp_rate, p=prob_global_contact, a=prob_asymptomatic, f=death_rate, 
-		                                         h=prob_symp_to_hosp, q=prob_detected_global_contact, initI_S=init_symp_cases, initI_A=init_asymp_cases, store_Xseries=True)
+		model = ExtSEIRSNetworkModel(G=graph, Q=quarantine_graph ,p=prob_global_contact, q=prob_quarantine_global_contact, beta=transmission_rate, sigma=progression_rate, gamma=recovery_rate, lamda=progression_rate, mu_H=crit_rate, eta=hosp_rate, a=prob_asymptomatic, f=death_rate, h=prob_symp_to_hosp, initI_sym=init_symp_cases, initI_asym=init_asymp_cases, store_Xseries=True)
 
 		# Run model
 		node_states, simulation_results = run_simulation(model, t_steps, checkpoints)
