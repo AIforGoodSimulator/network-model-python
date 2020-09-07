@@ -426,3 +426,39 @@ def load_graph(name):
         nodes_per_struct = pkl.load(f)
         
     return graph, nodes_per_struct
+
+
+def get_values_per_node(params_per_age, graph):
+    """
+    Returns a list of parameters according to each node, where list[i] is the value of a given parameter for node i
+    Sample input: 
+    
+        - params_per_age = {'0-9':     0.0000,
+                            '10-19':   0.3627,
+                            '20-29':   0.0577,
+                            '30-39':   0.0426,
+                            [...]}
+        - graph = networkX graph
+    Sample output for nodes of ages [6, 25, 32]:
+        - [0.000, 0.0577, 0.0426]
+    """
+    # Convert the {str: float} dict to {(low_age, high_age): float} dict
+    parsed_params_per_age = dict()
+    for age_str, value in params_per_age.items():
+        if "+" in age_str:
+            age_range = (int(age_str[:-1]), 100)
+        else:
+            age_split = age_str.split("-")
+            age_range = (int(age_split[0]), int(age_split[1]))
+        
+        parsed_params_per_age[age_range] = value
+
+    # Build a list of parameters according to age in order of nodes
+    node_params = list()
+    for i in range(len(graph.nodes)):
+        age = graph.nodes[i]['age']
+        for age_range, value in parsed_params_per_age.items():
+            if age_range[0] <= int(age) <= age_range[1]:
+                node_params.append(value)
+                break
+    return node_params
