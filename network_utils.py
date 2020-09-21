@@ -298,12 +298,12 @@ def create_node_groups(graph):
 ####### MODEL UTILS! ################
 
 def run_simulation(model, t, checkpoints=None, simulation_results=None, nodes_states=None, print_info=False, store_every=1):
-
+    
+    print(f"Running simulation for {t} steps...\n")
+    
     if not simulation_results:
         node_states = dict()
         simulation_results = defaultdict(list)
-
-    print(f"Running simulation for {t} steps...\n")
 
     for i in tqdm(range(1, t + 1)):
         model.run(T=1, verbose=print_info, checkpoints=checkpoints)
@@ -382,7 +382,7 @@ def add_model_name(name_csv, fig_name,
 
     """ Adds the parameters of model fig_name to name_csv """
 
-    name_df = pd.read_csv(name_csv)
+    name_df = pd.read_csv(name_csv, index_col=0)
 
     # Add a new model name + parameters as a new row at the end of the df
     idx = 0 if pd.isnull(name_df.index.max()) else name_df.index.max() + 1
