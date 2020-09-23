@@ -306,7 +306,7 @@ def run_simulation(model, t, checkpoints=None, simulation_results=None, nodes_st
     print(f"Running simulation for {t} steps...\n")
 
     for i in tqdm(range(1, t + 1)):
-        model.run(T=1, verbose=print_info, checkpoints=checkpoints)
+        model.run_iteration()
 
         if i % store_every == 0:
             # Store the node states - an array of size (1, num_nodes) -> we
