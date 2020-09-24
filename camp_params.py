@@ -54,4 +54,5 @@ grid_block3 = create_grid(dims_block3[0], dims_block3[1], grid_block2[-1][-1] + 
 
 household_weight = 0.98  # Edge weight for connections within each structure
 neighbor_weight = 0.017  # Edge weight for friendship connections
+neighbor_proximity = 2  # The radius of nearby structures whose inhabitants a person has connections with
 food_weight = 0.407  # Edge weight for connections in the food queue 

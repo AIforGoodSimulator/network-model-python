@@ -23,7 +23,9 @@ STATE_DICTIONARY = {
     "Detected_Asymptomatic": 12}
 
 
-####### NETWORK CREATION UTILS! ################
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Network creation utils
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 def create_graph(
         n_structures,
         start_idx,
@@ -94,7 +96,7 @@ def remove_edges_from_graph(base_graph, edge_label_list, scale, min_num_edges):
     graph = base_graph.copy()
 
     for node in graph:
-            # Select all the neighbors that share an edge of a particular label
+        # Select all the neighbors that share an edge of a particular label
         neighbors = [neighbor for neighbor in list(graph[node].keys())
                      if graph.edges[node, neighbor]["label"] in edge_label_list]
 
@@ -122,11 +124,11 @@ def remove_all_edges(base_graph, edge_label_list):
     graph = base_graph.copy()
     for node in graph:
         neighbors = [neighbor for neighbor in list(graph[node].keys())
-                             if graph.edges[node, neighbor]["label"] in edge_label_list]
+                     if graph.edges[node, neighbor]["label"] in edge_label_list]
 
         for neighbor in neighbors:
             graph.remove_edge(node, neighbor)
-        
+
     return graph
 
 
@@ -260,11 +262,12 @@ def create_multiple_food_queues(base_graph, n_food_queues_per_block, food_weight
         else:
             for i in range(n_food_queues_per_block):
                 subgrids.append(grid[:, i * index_limit:(i + 1) * index_limit])
-        
+
         for i in range(len(subgrids)):
             subgrid = subgrids[i]
-            nodes_per_struct_subgrid = [nodes_per_struct[subgrid[i][j]] for i in range(len(subgrid)) for j in range(len(subgrid[i]))]
-            
+            nodes_per_struct_subgrid = [nodes_per_struct[subgrid[i][j]] for i in range(len(subgrid)) for j in
+                                        range(len(subgrid[i]))]
+
             graph = connect_food_queue(graph, nodes_per_struct_subgrid, food_weight, f"food_{queue_num}")
             queue_num += 1
 
@@ -295,105 +298,9 @@ def create_node_groups(graph):
     return node_groups
 
 
-####### MODEL UTILS! ################
-
-def run_simulation(model, t, checkpoints=None, simulation_results=None, nodes_states=None, print_info=False, store_every=1):
-
-    if not simulation_results:
-        node_states = dict()
-        simulation_results = defaultdict(list)
-
-    print(f"Running simulation for {t} steps...\n")
-
-    for i in tqdm(range(1, t + 1)):
-        model.run_iteration()
-
-        if i % store_every == 0:
-            # Store the node states - an array of size (1, num_nodes) -> we
-            # store a copy because the array gets updated
-            node_states[i] = np.copy(model.X.T)
-
-            # Store the quantities of the last time step t
-            simulation_results["Susceptible"].append(model.numS[-1])
-            simulation_results["Exposed"].append(model.numE[-1])
-            simulation_results["Infected_Presymptomatic"].append(
-                model.numI_pre[-1])
-            simulation_results["Infected_Symptomatic"].append(model.numI_sym[-1])
-            simulation_results["Infected_Asymptomatic"].append(
-                model.numI_asym[-1])
-            simulation_results["Hospitalized"].append(model.numH[-1])
-            simulation_results["Recovered"].append(model.numR[-1])
-            simulation_results["Fatalities"].append(model.numF[-1])
-            simulation_results["T_index"].append(model.tidx)
-
-    return node_states, simulation_results
-
-
-def find_whole_time(tseries, T):
-    idt = []
-    for t in range(0, T + 1):
-        idt.append(np.abs(tseries - t).argmin())
-    return idt
-
-
-def run_simulation_test(model, t, print_info=False):
-    node_states = dict()
-    simulation_results = defaultdict(list)
-
-    print(f"Running simulation for {t} steps...\n")
-    model.run(T=t, verbose=print_info)
-    # Store the quantities of the time step closest to the integer
-    time_stamps = model.tseries
-    idt = find_whole_time(time_stamps, t)
-    # Store the quantities of each integer time steps
-    simulation_results["Susceptible"] = model.numS[idt]
-    simulation_results["Exposed"] = model.numE[idt]
-    simulation_results["Infected_Presymptomatic"] = model.numI_pre[idt]
-    simulation_results["Infected_Symptomatic"] = model.numI_S[idt]
-    simulation_results["Infected_Asymptomatic"] = model.numI_A[idt]
-    simulation_results["Hospitalized"] = model.numH[idt]
-    simulation_results["Recovered"] = model.numR[idt]
-    simulation_results["Fatalities"] = model.numF[idt]
-    simulation_results["Detected_Presymptomatic"] = model.numD_pre[idt]
-    simulation_results["Detected_Symptomatic"] = model.numD_S[idt]
-    simulation_results["Detected_Asymptomatic"] = model.numD_A[idt]
-
-    return simulation_results
-
-
-def results_to_df(simulation_results, store=False, store_name=None):
-    """ Convers the simulation results to a dataframe, adding a "timestep" column to it
-        Returns a dataframe with the information requested above, and stores it if store=True """
-
-    simulation_results["Time"] = list(
-        range(1, len(simulation_results["T_index"]) + 1))
-    output = pd.DataFrame(simulation_results)
-
-    if store:
-        output.to_csv(store_name)
-
-    return output
-
-def add_model_name(name_csv, fig_name, 
-    household_weight, neighbor_weight, food_weight, 
-    transmission_rate, recovery_rate, progression_rate, 
-    hosp_rate, crit_rate, death_rate, init_symp_cases, 
-    init_asymp_cases, t_steps, q_time="", q_red="", h_time=""):
-
-    """ Adds the parameters of model fig_name to name_csv """
-
-    name_df = pd.read_csv(name_csv)
-
-    # Add a new model name + parameters as a new row at the end of the df
-    idx = 0 if pd.isnull(name_df.index.max()) else name_df.index.max() + 1
-    name_df.loc[idx] = [fig_name, household_weight, neighbor_weight, food_weight, transmission_rate, recovery_rate, progression_rate, hosp_rate, crit_rate, death_rate, init_symp_cases, init_asymp_cases, t_steps, q_time, q_red, h_time]
-
-    # Store as csv again
-    name_df.to_csv(name_csv)
-
-###########################################
-
-# Some helper functions - all of which could be added to networkx class!
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Network helper functions
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 def min_degree(graph):
     """ Return the minimum degree in the graph """
     return min(graph.degree, key=lambda kv: kv[1])[1]
@@ -413,7 +320,7 @@ def get_nodes_per_state(X, graph, state):
 def save_graph(graph, nodes_per_struct, name):
     with open(name + ".graph", "wb") as f:
         pkl.dump(graph, f)
-    
+
     with open(name + ".nps", "wb") as f:
         pkl.dump(nodes_per_struct, f)
 
@@ -421,18 +328,18 @@ def save_graph(graph, nodes_per_struct, name):
 def load_graph(name):
     with open(name + ".graph", "rb") as f:
         graph = pkl.load(f)
-        
+
     with open(name + ".nps", "rb") as f:
         nodes_per_struct = pkl.load(f)
-        
+
     return graph, nodes_per_struct
 
 
 def get_values_per_node(params_per_age, graph):
     """
     Returns a list of parameters according to each node, where list[i] is the value of a given parameter for node i
-    Sample input: 
-    
+    Sample input:
+
         - params_per_age = {'0-9':     0.0000,
                             '10-19':   0.3627,
                             '20-29':   0.0577,
@@ -450,7 +357,7 @@ def get_values_per_node(params_per_age, graph):
         else:
             age_split = age_str.split("-")
             age_range = (int(age_split[0]), int(age_split[1]))
-        
+
         parsed_params_per_age[age_range] = value
 
     # Build a list of parameters according to age in order of nodes
@@ -462,3 +369,127 @@ def get_values_per_node(params_per_age, graph):
                 node_params.append(value)
                 break
     return node_params
+
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Model utils
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def run_simulation(model, t, checkpoints=None, simulation_results=None, node_states=None, print_every=30,
+                   store_every=1):
+
+    if not simulation_results:
+        node_states = dict()
+        simulation_results = defaultdict(list)
+
+    print(f"Running simulation for {t} steps...\n")
+    model.tmax = t
+
+    # Preprocess checkpoints
+    if checkpoints:
+        numCheckpoints = len(checkpoints['t'])
+        for chkpt_param, chkpt_values in checkpoints.items():
+            assert (isinstance(chkpt_values, (list, np.ndarray)) and len(
+                chkpt_values) == numCheckpoints), "Expecting a list of values with length equal to number of checkpoint times (" + str(
+                numCheckpoints) + ") for each checkpoint parameter."
+        checkpointIdx = np.searchsorted(checkpoints['t'], model.t)  # Finds 1st index in list greater than given val
+        if checkpointIdx >= numCheckpoints:
+            # We are out of checkpoints, stop checking them:
+            checkpoints = None
+        else:
+            checkpointTime = checkpoints['t'][checkpointIdx]
+
+    stored_times = set()
+    running = True
+    while running:
+        running = model.run_iteration()
+
+        # Handle checkpoints if applicable
+        if checkpoints:
+            if model.t >= checkpointTime:
+                print("[Checkpoint: Updating parameters]")
+
+                # A checkpoint has been reached, update param values:
+                for param in list(model.parameters.keys()):
+                    if (param in list(checkpoints.keys())):
+                        model.parameters.update({param: checkpoints[param][checkpointIdx]})
+
+                # Update parameter data structures and scenario flags:
+                model.update_parameters()
+
+                # Update the next checkpoint time:
+                checkpointIdx = np.searchsorted(checkpoints['t'],
+                                                   model.t)  # Finds 1st index in list greater than given val
+
+                if (checkpointIdx >= numCheckpoints):
+                    # We are out of checkpoints, stop checking them:
+                    checkpoints = None
+                else:
+                    checkpointTime = checkpoints['t'][checkpointIdx]
+
+        if int(model.t) % store_every == 0 and int(model.t) not in stored_times:
+            # Store the node states - an array of size (1, num_nodes) -> we
+            # store a copy because the array gets updated
+            node_states[int(model.t)] = np.copy(model.X.T)
+
+            # Store the quantities of the last time step t
+            simulation_results["Susceptible"].append(model.numS[model.tidx])
+            simulation_results["Exposed"].append(model.numE[model.tidx])
+            simulation_results["Infected_Presymptomatic"].append(
+                model.numI_pre[model.tidx])
+            simulation_results["Infected_Symptomatic"].append(model.numI_sym[model.tidx])
+            simulation_results["Infected_Asymptomatic"].append(
+                model.numI_asym[model.tidx])
+            simulation_results["Hospitalized"].append(model.numH[model.tidx])
+            simulation_results["Recovered"].append(model.numR[model.tidx])
+            simulation_results["Fatalities"].append(model.numF[model.tidx])
+            simulation_results["T_index"].append(model.tidx)
+
+        if int(model.t) % print_every == 0 and int(model.t) not in stored_times:
+            print("-------------------------------------------")
+            print("Day = %.2f" % model.t)
+            print("\t Susceptible    = " + str(model.numS[model.tidx]))
+            print("\t Exposed        = " + str(model.numE[model.tidx]))
+            print("\t Infected_pre   = " + str(model.numI_pre[model.tidx]))
+            print("\t Infected_sym   = " + str(model.numI_sym[model.tidx]))
+            print("\t Infected_asym  = " + str(model.numI_asym[model.tidx]))
+            print("\t Hospitalized   = " + str(model.numH[model.tidx]))
+            print("\t Recovered      = " + str(model.numR[model.tidx]))
+            print("\t Fatalities     = " + str(model.numF[model.tidx]))
+
+        stored_times.add(int(model.t))
+
+    print("-------------------------------------------")
+    return node_states, simulation_results
+
+
+def results_to_df(simulation_results, store=False, store_name=None):
+    """ Convers the simulation results to a dataframe, adding a "timestep" column to it
+        Returns a dataframe with the information requested above, and stores it if store=True """
+
+    simulation_results["Time"] = list(
+        range(1, len(simulation_results["T_index"]) + 1))
+    output = pd.DataFrame(simulation_results)
+
+    if store:
+        output.to_csv(store_name)
+
+    return output
+
+
+def add_model_name(name_csv, fig_name,
+                   household_weight, neighbor_weight, food_weight,
+                   transmission_rate, recovery_rate, progression_rate,
+                   hosp_rate, crit_rate, death_rate, init_symp_cases,
+                   init_asymp_cases, t_steps, q_time="", q_red="", h_time=""):
+    """ Adds the parameters of model fig_name to name_csv """
+
+    name_df = pd.read_csv(name_csv)
+
+    # Add a new model name + parameters as a new row at the end of the df
+    idx = 0 if pd.isnull(name_df.index.max()) else name_df.index.max() + 1
+    name_df.loc[idx] = [fig_name, household_weight, neighbor_weight, food_weight, transmission_rate, recovery_rate,
+                        progression_rate, hosp_rate, crit_rate, death_rate, init_symp_cases, init_asymp_cases, t_steps,
+                        q_time, q_red, h_time]
+
+    # Store as csv again
+    name_df.to_csv(name_csv)
