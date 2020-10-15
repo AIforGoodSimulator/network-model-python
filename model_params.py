@@ -7,12 +7,12 @@ from camp_params import *
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # Distribution based parameters
-latentPeriod_mean, latentPeriod_coeffvar = 3.0, 0.6
+latentPeriod_mean, latentPeriod_coeffvar = 4.0, 0.6
 presymptomaticPeriod_mean, presymptomaticPeriod_coeffvar = 2.2, 0.5
 symptomaticPeriod_mean, symptomaticPeriod_coeffvar = 4.0, 0.4
 onsetToHospitalizationPeriod_mean, onsetToHospitalizationPeriod_coeffvar = 11.0, 0.45
-hospitalizationToDischargePeriod_mean, hospitalizationToDischargePeriod_coeffvar = 11.0, 0.45
-hospitalizationToDeathPeriod_mean, hospitalizationToDeathPeriod_coeffvar = 7.0, 0.45
+hospitalizationToDischargePeriod_mean, hospitalizationToDischargePeriod_coeffvar = 8.0, 0.45
+hospitalizationToDeathPeriod_mean, hospitalizationToDeathPeriod_coeffvar = 10.0, 0.45
 R0_mean     = 2.5
 R0_coeffvar = 0.2
 
@@ -30,31 +30,37 @@ BETA_PAIRWISE_MODE  = 'infected'
 DELTA_PAIRWISE_MODE = 'mean'
 
 # Constant parameters
-P_GLOBALINTXN = 0.2
+P_GLOBALINTXN = 0.8
 INIT_EXPOSED = int(n_pop / 100)
-INIT_INFECTED = int(n_pop / 100)
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # REDUCED INTERACTIONS PROFILE ADDITIONS
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 reduction_rate = 0.3
 BETA_Q = BETA * (reduction_rate/R0_mean)
-Q_GLOBALINTXN = 0.05
+Q_GLOBALINTXN = 0.2
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # AGE BASED PARAMETERS
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-ageGroup_pctAsymp = {"0-19": 0.8, "20+": 0.2}
-ageGroup_pctHospitalized = {'0-9':      0.0000,
-                            '10-19':    0.0004,
-                            '20-29':    0.0104,
-                            '30-39':    0.0343,
-                            '40-49':    0.0425,
-                            '50-59':    0.0816,
-                            '60-69':    0.118,
-                            '70-79':    0.166,
-                            '80+':      0.184 }
+ageGroup_pctAsymp = {'0-9':0.6,
+                            '10-19':    0.75,
+                            '20-29':    0.63,
+                            '30-39':    0.58,
+                            '40-49':    0.49,
+                            '50-59':    0.41,
+                            '60-69':    0.28,
+                            '70+':    0.24, }
+
+ageGroup_pctHospitalized = {'0-9':      0.0076,
+                            '10-19':    0.0081,
+                            '20-29':    0.0099,
+                            '30-39':    0.0185,
+                            '40-49':    0.0543,
+                            '50-59':    0.1505,
+                            '60-69':    0.3329,
+                            '70+':    0.6176,}
 
 ageGroup_hospitalFatalityRate = {'0-9':     0.0000,
                                  '10-19':   0.3627,
@@ -65,7 +71,7 @@ ageGroup_hospitalFatalityRate = {'0-9':     0.0000,
                                  '60-69':   0.3381,
                                  '70-79':   0.5187,
                                  '80+':     0.7283 }
-ageGroup_susceptibility = {"0-19": 0.5, "20+": 1.0}
+ageGroup_susceptibility = {"0+": 1.0}
 
 
 
