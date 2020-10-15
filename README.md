@@ -52,7 +52,7 @@ Lastly, multiple food queues can be implemented using the fuction `create_multip
 graph_4fq = create_multiple_food_queues(graph, 1, food_weight, nodes_per_struct, [grid_isoboxes, grid_block1, grid_block2, grid_block3])
 ```
 
-## Launch Jupyter Notebooks for Data Science in Docker
+## Launch Docker container for the project
 ```
-docker run -p 8888:8888 -p 4040:4040 -v $(PWD):/home/jovyan/work --name seirs-covid jupyter/datascience-notebook
+make launch-docker
 ```
