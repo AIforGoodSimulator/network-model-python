@@ -445,6 +445,24 @@ def run_simulation(model, t, checkpoints=None, simulation_results=None, node_sta
             simulation_results["Recovered"].append(model.numR[model.tidx])
             simulation_results["Fatalities"].append(model.numF[model.tidx])
             simulation_results["T_index"].append(model.tidx)
+            
+            for age_bucket in model.nodeGroupData:
+                simulation_results[f'Susceptible: {age_bucket}'].append(
+                    model.nodeGroupData[age_bucket]['numS'][model.tidx])
+                simulation_results[f'Exposed: {age_bucket}'].append(
+                    model.nodeGroupData[age_bucket]['numE'][model.tidx])
+                simulation_results[f'Infected_Presymptomatic: {age_bucket}'].append(
+                    model.nodeGroupData[age_bucket]['numI_pre'][model.tidx])
+                simulation_results[f'Infected_Symptomatic: {age_bucket}'].append(
+                    model.nodeGroupData[age_bucket]['numI_sym'][model.tidx])
+                simulation_results[f'Infected_Asymptomatic: {age_bucket}'].append(
+                    model.nodeGroupData[age_bucket]['numI_asym'][model.tidx])
+                simulation_results[f'Hospitalized: {age_bucket}'].append(
+                    model.nodeGroupData[age_bucket]['numH'][model.tidx])
+                simulation_results[f'Recovered: {age_bucket}'].append(
+                    model.nodeGroupData[age_bucket]['numR'][model.tidx])
+                simulation_results[f'Fatalities: {age_bucket}'].append(
+                    model.nodeGroupData[age_bucket]['numF'][model.tidx])
 
         if int(model.t) % print_every == 0 and int(model.t) not in stored_times:
             print("-------------------------------------------")
